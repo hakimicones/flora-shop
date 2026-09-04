@@ -1,0 +1,286 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class Flora_Activator {
+
+    public static function activate() {
+        self::create_tables();
+        self::set_default_options();
+        flush_rewrite_rules();
+    }
+
+    public static function deactivate() {
+        flush_rewrite_rules();
+    }
+
+    private static function set_default_options() {
+        add_option( 'flora_shop_version', FLORA_SHOP_VERSION );
+        add_option( 'flora_currency', 'DZD' );
+        add_option( 'flora_free_shipping_threshold', 0 );
+        add_option( 'flora_product_discounts', array() );
+        add_option( 'flora_cart_discounts', array() );
+    }
+
+    private static function create_tables() {
+        global $wpdb;
+        $charset = $wpdb->get_charset_collate();
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+        $prefix = $wpdb->prefix . 'flora_';
+
+        $sql_products = "CREATE TABLE {$prefix}products (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            slug varchar(255) NOT NULL,
+            description longtext,
+            price decimal(10,2) NOT NULL DEFAULT 0.00,
+            weight decimal(8,2) DEFAULT NULL,
+            image_url varchar(500) DEFAULT '',
+            stock_qty int(11) NOT NULL DEFAULT 0,
+            stock_status varchar(20) NOT NULL DEFAULT 'instock',
+            status varchar(20) NOT NULL DEFAULT 'publish',
+            sort_order int(11) NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY slug (slug),
+            KEY status (status)
+        ) $charset;";
+
+        $sql_packs = "CREATE TABLE {$prefix}packs (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            slug varchar(255) NOT NULL,
+            pack_price decimal(10,2) NOT NULL DEFAULT 0.00,
+            description longtext,
+            image_url varchar(500) DEFAULT '',
+            status varchar(20) NOT NULL DEFAULT 'publish',
+            sort_order int(11) NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY slug (slug),
+            KEY status (status)
+        ) $charset;";
+
+        $sql_pack_products = "CREATE TABLE {$prefix}pack_products (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            pack_id bigint(20) unsigned NOT NULL,
+            product_id bigint(20) unsigned NOT NULL,
+            quantity int(11) NOT NULL DEFAULT 1,
+            sort_order int(11) NOT NULL DEFAULT 0,
+            PRIMARY KEY  (id),
+            KEY pack_id (pack_id),
+            KEY product_id (product_id)
+        ) $charset;";
+
+        $sql_communes = "CREATE TABLE {$prefix}communes (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            post_code varchar(10) NOT NULL,
+            name varchar(255) NOT NULL,
+            name_ar varchar(255) DEFAULT '',
+            daira varchar(255) DEFAULT '',
+            daira_ar varchar(255) DEFAULT '',
+            wilaya_code int(11) NOT NULL,
+            latitude decimal(10,7) DEFAULT NULL,
+            longitude decimal(10,7) DEFAULT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY post_code (post_code),
+            KEY wilaya_code (wilaya_code)
+        ) $charset;";
+
+        $sql_shipping_rates = "CREATE TABLE {$prefix}shipping_rates (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            wilaya_code int(11) NOT NULL,
+            commune_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            base_fee decimal(10,2) NOT NULL DEFAULT 0.00,
+            per_kg_fee decimal(10,2) NOT NULL DEFAULT 0.00,
+            PRIMARY KEY  (id),
+            KEY wilaya_code (wilaya_code),
+            KEY commune_id (commune_id)
+        ) $charset;";
+
+        $sql_promotions = "CREATE TABLE {$prefix}promotions (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            trigger_type varchar(10) NOT NULL DEFAULT 'product',
+            trigger_product_id bigint(20) unsigned NOT NULL,
+            trigger_qty int(11) NOT NULL DEFAULT 1,
+            reward_type varchar(10) NOT NULL DEFAULT 'free',
+            free_type varchar(10) NOT NULL DEFAULT 'product',
+            free_product_id bigint(20) unsigned NOT NULL,
+            free_qty int(11) NOT NULL DEFAULT 1,
+            discount_percent decimal(5,2) NOT NULL DEFAULT 0.00,
+            limit_per_order int(11) NOT NULL DEFAULT 0,
+            start_date date DEFAULT NULL,
+            end_date date DEFAULT NULL,
+            status varchar(20) NOT NULL DEFAULT 'active',
+            PRIMARY KEY  (id),
+            KEY trigger_product_id (trigger_product_id),
+            KEY status (status)
+        ) $charset;";
+
+        $sql_orders = "CREATE TABLE {$prefix}orders (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            order_number varchar(50) NOT NULL,
+            customer_name varchar(255) NOT NULL,
+            email varchar(255) NOT NULL,
+            phone varchar(50) DEFAULT '',
+            address text,
+            wilaya_code int(11) DEFAULT 0,
+            commune_id bigint(20) unsigned DEFAULT 0,
+            subtotal decimal(10,2) NOT NULL DEFAULT 0.00,
+            discount_total decimal(10,2) NOT NULL DEFAULT 0.00,
+            shipping_fee decimal(10,2) NOT NULL DEFAULT 0.00,
+            total decimal(10,2) NOT NULL DEFAULT 0.00,
+            status varchar(30) NOT NULL DEFAULT 'pending',
+            notes text,
+            created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY order_number (order_number),
+            KEY status (status),
+            KEY created_at (created_at)
+        ) $charset;";
+
+        $sql_order_details = "CREATE TABLE {$prefix}order_details (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            order_id bigint(20) unsigned NOT NULL,
+            item_type varchar(20) NOT NULL DEFAULT 'product',
+            item_id bigint(20) unsigned NOT NULL,
+            item_name varchar(255) NOT NULL,
+            quantity int(11) NOT NULL DEFAULT 1,
+            unit_price decimal(10,2) NOT NULL DEFAULT 0.00,
+            discount_applied decimal(10,2) NOT NULL DEFAULT 0.00,
+            PRIMARY KEY  (id),
+            KEY order_id (order_id)
+        ) $charset;";
+
+        dbDelta( $sql_products );
+        dbDelta( $sql_packs );
+        dbDelta( $sql_pack_products );
+        dbDelta( $sql_communes );
+        dbDelta( $sql_shipping_rates );
+        dbDelta( $sql_promotions );
+        dbDelta( $sql_orders );
+        dbDelta( $sql_order_details );
+
+        self::migrate_wilayas_table();
+        self::migrate_communes_columns();
+        self::migrate_shipping_rates_columns();
+        self::migrate_orders_columns();
+        self::migrate_promotions_columns();
+    }
+
+    public static function maybe_upgrade() {
+        $installed = (string) get_option( 'flora_shop_version', '0' );
+
+        if ( version_compare( $installed, FLORA_SHOP_VERSION, '<' ) ) {
+            self::create_tables();
+            update_option( 'flora_shop_version', FLORA_SHOP_VERSION );
+        }
+    }
+
+    private static function migrate_wilayas_table() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'flora_wilayas';
+        $table_communes = $wpdb->prefix . 'flora_communes';
+        $table_rates = $wpdb->prefix . 'flora_shipping_rates';
+        $table_orders = $wpdb->prefix . 'flora_orders';
+
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( is_array( $columns ) && in_array( 'id', $columns, true ) && ! isset( $columns[0] ) ) {
+            $wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $columns = array();
+        }
+
+        if ( empty( $columns ) ) {
+            $charset = $wpdb->get_charset_collate();
+            $wpdb->query( "CREATE TABLE {$table} (
+                code int(11) NOT NULL,
+                name varchar(255) NOT NULL,
+                name_ar varchar(255) DEFAULT '',
+                latitude decimal(10,7) DEFAULT NULL,
+                longitude decimal(10,7) DEFAULT NULL,
+                PRIMARY KEY  (code)
+            ) {$charset}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+            $wpdb->query( "UPDATE {$table_rates} SET wilaya_code = CAST(wilaya_id AS SIGNED) WHERE wilaya_code = 0 AND wilaya_id > 0" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->query( "UPDATE {$table_orders} SET wilaya_code = CAST(wilaya_id AS SIGNED) WHERE wilaya_code = 0 AND wilaya_id > 0" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+    }
+
+    private static function migrate_communes_columns() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'flora_communes';
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( ! is_array( $columns ) ) {
+            return;
+        }
+
+        if ( in_array( 'wilaya_id', $columns, true ) && ! in_array( 'wilaya_code', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN wilaya_code int(11) NOT NULL AFTER name" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->query( "UPDATE {$table} SET wilaya_code = wilaya_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->query( "ALTER TABLE {$table} DROP COLUMN wilaya_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( ! in_array( 'post_code', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN post_code varchar(10) NOT NULL DEFAULT '' AFTER id, ADD COLUMN name_ar varchar(255) NOT NULL DEFAULT '' AFTER name, ADD COLUMN daira varchar(255) NOT NULL DEFAULT '' AFTER name_ar, ADD COLUMN daira_ar varchar(255) NOT NULL DEFAULT '' AFTER daira, ADD COLUMN latitude decimal(10,7) DEFAULT NULL AFTER wilaya_code, ADD COLUMN longitude decimal(10,7) DEFAULT NULL AFTER latitude" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+    }
+
+    private static function migrate_shipping_rates_columns() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'flora_shipping_rates';
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( is_array( $columns ) && in_array( 'wilaya_id', $columns, true ) && ! in_array( 'wilaya_code', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN wilaya_code int(11) NOT NULL DEFAULT 0 AFTER id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->query( "UPDATE {$table} SET wilaya_code = wilaya_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->query( "ALTER TABLE {$table} DROP COLUMN wilaya_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+    }
+
+    private static function migrate_orders_columns() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'flora_orders';
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( is_array( $columns ) && in_array( 'wilaya_id', $columns, true ) && ! in_array( 'wilaya_code', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN wilaya_code int(11) NOT NULL DEFAULT 0 AFTER address" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->query( "UPDATE {$table} SET wilaya_code = wilaya_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->query( "ALTER TABLE {$table} DROP COLUMN wilaya_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+    }
+
+    private static function migrate_promotions_columns() {
+        global $wpdb;
+        $table   = $wpdb->prefix . 'flora_promotions';
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( ! is_array( $columns ) ) {
+            return;
+        }
+
+        if ( ! in_array( 'trigger_type', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN trigger_type varchar(10) NOT NULL DEFAULT 'product' AFTER id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        if ( ! in_array( 'reward_type', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN reward_type varchar(10) NOT NULL DEFAULT 'free' AFTER trigger_qty" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        if ( ! in_array( 'free_type', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN free_type varchar(10) NOT NULL DEFAULT 'product' AFTER reward_type" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        if ( ! in_array( 'discount_percent', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN discount_percent decimal(5,2) NOT NULL DEFAULT 0.00 AFTER free_qty" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+    }
+}

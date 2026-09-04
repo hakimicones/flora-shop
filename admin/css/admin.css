@@ -1,0 +1,173 @@
+/* Flora Shop - Admin Styles */
+
+.flora-admin h1 {
+    margin-bottom: 20px;
+}
+
+.flora-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.flora-stat-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-left: 4px solid #2271b1;
+    padding: 20px;
+    text-align: center;
+}
+
+.flora-stat-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    color: #646970;
+    text-transform: uppercase;
+}
+
+.flora-stat-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1d2327;
+    margin: 0;
+}
+
+.flora-dashboard-columns {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+.flora-dashboard-main,
+.flora-dashboard-sidebar {
+    min-width: 0;
+}
+
+.flora-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.flora-card h2 {
+    margin-top: 0;
+    font-size: 16px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.flora-status {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.flora-status-publish,
+.flora-status-completed,
+.flora-status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.flora-status-draft,
+.flora-status-inactive {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.flora-status-pending {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.flora-status-processing,
+.flora-status-shipped {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.flora-status-cancelled,
+.flora-status-trash {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.flora-status-refunded {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.flora-top-products {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.flora-top-products li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.flora-top-products li:last-child {
+    border-bottom: none;
+}
+
+.flora-tp-name {
+    flex: 1;
+    font-weight: 600;
+}
+
+.flora-tp-qty {
+    flex: 0 0 auto;
+    padding: 0 15px;
+    color: #646970;
+}
+
+.flora-tp-revenue {
+    flex: 0 0 100px;
+    text-align: right;
+    font-weight: 600;
+}
+
+.flora-link-btn {
+    background: none;
+    border: none;
+    color: #2271b1;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.flora-link-btn:hover {
+    color: #135e96;
+}
+
+.flora-badge-free {
+    display: inline-block;
+    background: #28a745;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    vertical-align: middle;
+    margin-left: 5px;
+}
+
+#flora-revenue-chart {
+    max-height: 300px;
+}
+
+@media screen and (max-width: 960px) {
+    .flora-dashboard-columns {
+        grid-template-columns: 1fr;
+    }
+}

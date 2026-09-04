@@ -1,0 +1,265 @@
+<div class="wrap flora-admin">
+    <h1><?php esc_html_e( 'Gestion du transport', 'flora-shop' ); ?></h1>
+
+    <h2 class="nav-tab-wrapper">
+        <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-shipping&tab=wilayas' ) ); ?>" class="nav-tab <?php echo 'wilayas' === $tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Wilayas', 'flora-shop' ); ?></a>
+        <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-shipping&tab=communes' ) ); ?>" class="nav-tab <?php echo 'communes' === $tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Communes', 'flora-shop' ); ?></a>
+        <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-shipping&tab=rates' ) ); ?>" class="nav-tab <?php echo 'rates' === $tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Tarifs', 'flora-shop' ); ?></a>
+    </h2>
+
+    <?php if ( 'wilayas' === $tab ) : ?>
+        <div class="flora-card" style="background:#f0f6fc;border-left:4px solid #2271b1;">
+            <h3 style="margin-top:0;"><?php esc_html_e( 'Importer les données officielles', 'flora-shop' ); ?></h3>
+            <p><?php esc_html_e( 'Importe les 69 wilayas et 1541 communes depuis le fichier SQL de référence.', 'flora-shop' ); ?></p>
+            <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                <?php Flora_Helpers::wpnonce_field( 'flora_import_wilayas' ); ?>
+                <input type="hidden" name="flora_action" value="import_wilayas">
+                <div>
+                    <label><?php esc_html_e( 'Chemin du fichier SQL', 'flora-shop' ); ?></label><br>
+                    <input type="text" name="sql_file_path" class="regular-text" value="<?php echo esc_attr( ABSPATH . '../wilaya/mysql_wilayas_communes.sql' ); ?>">
+                </div>
+                <div><button type="submit" class="button"><?php esc_html_e( 'Importer', 'flora-shop' ); ?></button></div>
+            </form>
+        </div>
+
+        <div class="flora-card">
+            <h3><?php esc_html_e( 'Ajouter / Modifier une Wilaya', 'flora-shop' ); ?></h3>
+            <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                <?php Flora_Helpers::wpnonce_field( 'flora_save_wilaya' ); ?>
+                <input type="hidden" name="flora_action" value="save_wilaya">
+                <div>
+                    <label for="wilaya_code"><?php esc_html_e( 'Code', 'flora-shop' ); ?></label><br>
+                    <input type="number" id="wilaya_code" name="code" class="small-text" required min="1" max="69" placeholder="16">
+                </div>
+                <div>
+                    <label for="wilaya_name"><?php esc_html_e( 'Nom', 'flora-shop' ); ?></label><br>
+                    <input type="text" id="wilaya_name" name="name" class="regular-text" required placeholder="Alger">
+                </div>
+                <div>
+                    <label for="wilaya_name_ar"><?php esc_html_e( 'Nom arabe', 'flora-shop' ); ?></label><br>
+                    <input type="text" id="wilaya_name_ar" name="name_ar" class="regular-text" placeholder="الجزائر">
+                </div>
+                <div>
+                    <label for="wilaya_lat"><?php esc_html_e( 'Latitude', 'flora-shop' ); ?></label><br>
+                    <input type="text" id="wilaya_lat" name="latitude" class="small-text" placeholder="36.7538">
+                </div>
+                <div>
+                    <label for="wilaya_lng"><?php esc_html_e( 'Longitude', 'flora-shop' ); ?></label><br>
+                    <input type="text" id="wilaya_lng" name="longitude" class="small-text" placeholder="3.0578">
+                </div>
+                <div><button type="submit" class="button button-primary"><?php esc_html_e( 'Enregistrer', 'flora-shop' ); ?></button></div>
+            </form>
+        </div>
+
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th style="width:70px;"><?php esc_html_e( 'Code', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Nom', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Nom arabe', 'flora-shop' ); ?></th>
+                    <th style="width:150px;"><?php esc_html_e( 'Lat / Lng', 'flora-shop' ); ?></th>
+                    <th style="width:150px;"><?php esc_html_e( 'Actions', 'flora-shop' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ( empty( $wilayas ) ) : ?>
+                    <tr><td colspan="5"><?php esc_html_e( 'Aucune wilaya configurée.', 'flora-shop' ); ?></td></tr>
+                <?php else : ?>
+                    <?php foreach ( $wilayas as $w ) : ?>
+                        <tr>
+                            <td><?php echo esc_html( $w->code ); ?></td>
+                            <td><?php echo esc_html( $w->name ); ?></td>
+                            <td><?php echo esc_html( $w->name_ar ); ?></td>
+                            <td><?php echo $w->latitude ? esc_html( $w->latitude . ', ' . $w->longitude ) : '—'; ?></td>
+                            <td>
+                                <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Supprimer cette wilaya ?', 'flora-shop' ); ?>');">
+                                    <?php wp_nonce_field( 'flora_delete_wilaya', '_flora_nonce' ); ?>
+                                    <input type="hidden" name="flora_action" value="delete_wilaya">
+                                    <input type="hidden" name="wilaya_code" value="<?php echo esc_attr( $w->code ); ?>">
+                                    <button type="submit" class="flora-link-btn" style="color:#d63638;"><?php esc_html_e( 'Supprimer', 'flora-shop' ); ?></button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+    <?php elseif ( 'communes' === $tab ) : ?>
+        <div class="flora-card">
+            <h3><?php esc_html_e( 'Ajouter une commune', 'flora-shop' ); ?></h3>
+            <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                <?php Flora_Helpers::wpnonce_field( 'flora_save_commune' ); ?>
+                <input type="hidden" name="flora_action" value="save_commune">
+                <div>
+                    <label><?php esc_html_e( 'Code postal', 'flora-shop' ); ?></label><br>
+                    <input type="text" name="post_code" class="small-text" required placeholder="16001">
+                </div>
+                <div>
+                    <label><?php esc_html_e( 'Wilaya', 'flora-shop' ); ?></label><br>
+                    <select name="wilaya_code" required>
+                        <option value=""><?php esc_html_e( '-- Choisir --', 'flora-shop' ); ?></option>
+                        <?php foreach ( $wilayas as $w ) : ?>
+                            <option value="<?php echo esc_attr( $w->code ); ?>"><?php echo esc_html( $w->code . ' - ' . $w->name ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label><?php esc_html_e( 'Nom commune', 'flora-shop' ); ?></label><br>
+                    <input type="text" name="name" class="regular-text" required placeholder="Bab Ezzouar">
+                </div>
+                <div>
+                    <label><?php esc_html_e( 'Nom arabe', 'flora-shop' ); ?></label><br>
+                    <input type="text" name="name_ar" class="regular-text" placeholder="باب الزوار">
+                </div>
+                <div>
+                    <label><?php esc_html_e( 'Daïra', 'flora-shop' ); ?></label><br>
+                    <input type="text" name="daira" class="regular-text" placeholder="Dar El Beida">
+                </div>
+                <div><button type="submit" class="button button-primary"><?php esc_html_e( 'Ajouter', 'flora-shop' ); ?></button></div>
+            </form>
+        </div>
+
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th style="width:80px;"><?php esc_html_e( 'Code postal', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Wilaya', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Commune', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Daïra', 'flora-shop' ); ?></th>
+                    <th style="width:150px;"><?php esc_html_e( 'Actions', 'flora-shop' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $all_communes = $db->get_communes();
+                if ( empty( $all_communes ) ) :
+                ?>
+                    <tr><td colspan="5"><?php esc_html_e( 'Aucune commune configurée.', 'flora-shop' ); ?></td></tr>
+                <?php else : ?>
+                    <?php foreach ( $all_communes as $c ) :
+                        $w_obj = isset( $wilaya_map[ $c->wilaya_code ] ) ? $wilaya_map[ $c->wilaya_code ] : null;
+                    ?>
+                        <tr>
+                            <td><?php echo esc_html( $c->post_code ); ?></td>
+                            <td><?php echo $w_obj ? esc_html( $w_obj->code . ' - ' . $w_obj->name ) : esc_html( $c->wilaya_code ); ?></td>
+                            <td><?php echo esc_html( $c->name ); ?></td>
+                            <td><?php echo esc_html( $c->daira ); ?></td>
+                            <td>
+                                <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Supprimer cette commune ?', 'flora-shop' ); ?>');">
+                                    <?php wp_nonce_field( 'flora_delete_commune', '_flora_nonce' ); ?>
+                                    <input type="hidden" name="flora_action" value="delete_commune">
+                                    <input type="hidden" name="commune_id" value="<?php echo esc_attr( $c->id ); ?>">
+                                    <button type="submit" class="flora-link-btn" style="color:#d63638;"><?php esc_html_e( 'Supprimer', 'flora-shop' ); ?></button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+    <?php elseif ( 'rates' === $tab ) : ?>
+        <div class="flora-card">
+            <h3><?php esc_html_e( 'Ajouter / Modifier un tarif', 'flora-shop' ); ?></h3>
+            <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                <?php Flora_Helpers::wpnonce_field( 'flora_save_rate' ); ?>
+                <input type="hidden" name="flora_action" value="save_rate">
+                <div>
+                    <label><?php esc_html_e( 'Wilaya', 'flora-shop' ); ?></label><br>
+                    <select name="wilaya_code" required id="flora-rate-wilaya">
+                        <option value=""><?php esc_html_e( '-- Choisir --', 'flora-shop' ); ?></option>
+                        <?php foreach ( $wilayas as $w ) : ?>
+                            <option value="<?php echo esc_attr( $w->code ); ?>"><?php echo esc_html( $w->code . ' - ' . $w->name ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label><?php esc_html_e( 'Commune (optionnel = tarif wilaya)', 'flora-shop' ); ?></label><br>
+                    <select name="commune_id" id="flora-rate-commune">
+                        <option value="0"><?php esc_html_e( '-- Tarif Wilaya --', 'flora-shop' ); ?></option>
+                    </select>
+                </div>
+                <div>
+                    <label><?php esc_html_e( 'Frais fixe', 'flora-shop' ); ?></label><br>
+                    <input type="number" step="0.01" name="base_fee" class="small-text" required value="0.00">
+                </div>
+                <div>
+                    <label><?php esc_html_e( 'Frais par kg', 'flora-shop' ); ?></label><br>
+                    <input type="number" step="0.01" name="per_kg_fee" class="small-text" required value="0.00">
+                </div>
+                <div><button type="submit" class="button button-primary"><?php esc_html_e( 'Enregistrer', 'flora-shop' ); ?></button></div>
+            </form>
+        </div>
+
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e( 'Wilaya', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Commune', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Frais fixe', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Frais/kg', 'flora-shop' ); ?></th>
+                    <th style="width:150px;"><?php esc_html_e( 'Actions', 'flora-shop' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $all_communes_map = array();
+                foreach ( $wilayas as $ww ) {
+                    $ccs = $db->get_communes( $ww->code );
+                    foreach ( $ccs as $cc ) {
+                        $all_communes_map[ $cc->id ] = $cc->name;
+                    }
+                }
+
+                if ( empty( $rates ) ) :
+                ?>
+                    <tr><td colspan="5"><?php esc_html_e( 'Aucun tarif configuré.', 'flora-shop' ); ?></td></tr>
+                <?php else : ?>
+                    <?php foreach ( $rates as $r ) :
+                        $w_name = isset( $wilaya_map[ $r->wilaya_code ] ) ? $wilaya_map[ $r->wilaya_code ]->name : $r->wilaya_code;
+                        $c_name = $r->commune_id > 0 && isset( $all_communes_map[ $r->commune_id ] ) ? $all_communes_map[ $r->commune_id ] : '—';
+                    ?>
+                        <tr>
+                            <td><?php echo esc_html( $w_name ); ?></td>
+                            <td><?php echo esc_html( $c_name ); ?></td>
+                            <td><?php echo esc_html( Flora_Helpers::format_price( $r->base_fee ) ); ?></td>
+                            <td><?php echo esc_html( Flora_Helpers::format_price( $r->per_kg_fee ) ); ?></td>
+                            <td>
+                                <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Supprimer ce tarif ?', 'flora-shop' ); ?>');">
+                                    <?php wp_nonce_field( 'flora_delete_rate', '_flora_nonce' ); ?>
+                                    <input type="hidden" name="flora_action" value="delete_rate">
+                                    <input type="hidden" name="rate_id" value="<?php echo esc_attr( $r->id ); ?>">
+                                    <button type="submit" class="flora-link-btn" style="color:#d63638;"><?php esc_html_e( 'Supprimer', 'flora-shop' ); ?></button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <script>
+        jQuery(document).ready(function($) {
+            $('#flora-rate-wilaya').on('change', function() {
+                var wilayaCode = $(this).val();
+                var $commune = $('#flora-rate-commune');
+                $commune.html('<option value="0"><?php esc_html_e( "-- Tarif Wilaya --", "flora-shop" ); ?></option>');
+                if (wilayaCode) {
+                    $.ajax({
+                        url: floraAdmin.restUrl + 'communes/' + wilayaCode,
+                        headers: { 'X-WP-Nonce': floraAdmin.nonce },
+                        success: function(data) {
+                            if (data && data.length) {
+                                $.each(data, function(i, c) {
+                                    $commune.append('<option value="' + c.id + '">' + c.name + '</option>');
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+        });
+        </script>
+    <?php endif; ?>
+</div>

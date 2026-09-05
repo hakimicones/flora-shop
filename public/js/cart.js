@@ -350,6 +350,83 @@ function renderCartPromotions(cart) {
             });
     });
 
+    // ========== DETAIL: ACCORDION + PRICE RECAP ==========
+    $(document).on('click', '.flora-acc-header', function() {
+        var $item = $(this).closest('.flora-acc-item');
+        var $body = $item.find('.flora-acc-body');
+        var opened = $item.hasClass('open');
+        $item.toggleClass('open', !opened);
+        $body.prop('hidden', opened);
+        $(this).attr('aria-expanded', opened ? 'false' : 'true');
+    });
+
+    function initRecap() {
+        var $data = $('#flora-recap-data');
+        if ($data.length === 0) return;
+
+        var config;
+        try {
+            config = JSON.parse($data.text());
+        } catch (e) {
+            return;
+        }
+
+        var unitPrice = parseFloat(config.unit_price) || 0;
+        var promotions = config.promotions || [];
+        var $recap = $('#flora-recap');
+        if ($recap.length === 0) return;
+
+        var $detail = $recap.closest('.flora-product-detail');
+        var $qty = $detail.find('.flora-qty-input');
+        if ($qty.length === 0) return;
+
+        function renderRecap() {
+            var qty = parseInt($qty.val(), 10) || 1;
+            var subtotal = qty * unitPrice;
+            var promosHtml = '';
+            var discount = 0;
+
+            for (var i = 0; i < promotions.length; i++) {
+                var p = promotions[i];
+                var triggerQty = parseInt(p.trigger_qty, 10) || 1;
+                var times = Math.floor(qty / triggerQty);
+                if (times <= 0) continue;
+
+                var limit = parseInt(p.limit, 10) || 0;
+                if (limit > 0 && times > limit) times = limit;
+                if (times <= 0) continue;
+
+                var amount = 0;
+                if (p.reward_type === 'percent') {
+                    var percent = parseFloat(p.value) || 0;
+                    amount = (times * triggerQty * unitPrice) * (percent / 100);
+                } else if (p.reward_type === 'amount') {
+                    var perSet = parseFloat(p.value) || 0;
+                    var maxDiscount = times * triggerQty * unitPrice;
+                    amount = Math.min(times * perSet, maxDiscount);
+                }
+
+                if (p.is_free) {
+                    promosHtml += '<tr><td>' + escapeHtml(p.title) + '</td><td class="flora-promo-amount">' + i18n.added_free + '</td></tr>';
+                } else {
+                    discount += amount;
+                    promosHtml += '<tr><td>' + escapeHtml(p.title) + '</td><td>- ' + formatPrice(amount) + '</td></tr>';
+                }
+            }
+
+            $recap.find('[data-cell="unit"]').text(formatPrice(unitPrice));
+            $recap.find('[data-cell="subtotal"]').text(formatPrice(subtotal));
+            $recap.find('[data-cell="promos"]').html(promosHtml);
+            $recap.find('[data-cell="total"]').html('<strong>' + formatPrice(Math.max(0, subtotal - discount)) + '</strong>');
+        }
+
+        $qty.on('input change', renderRecap);
+        $detail.on('click', '.flora-qty-minus, .flora-qty-plus', function() {
+            setTimeout(renderRecap, 0);
+        });
+        renderRecap();
+    }
+
     // ========== HELPERS ==========
     function formatPrice(amount) {
         return parseFloat(amount || 0).toFixed(2) + ' DZD';
@@ -372,6 +449,7 @@ function renderCartPromotions(cart) {
     // ========== INIT ==========
     renderCartPage();
     renderCheckoutSummary();
+    initRecap();
 
     floraApi('GET', 'cart').done(function(data) {
         updateCartCount(data.item_count);

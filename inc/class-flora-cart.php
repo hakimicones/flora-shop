@@ -388,6 +388,30 @@ class Flora_Cart {
                 continue;
             }
 
+            if ( 'amount' === $reward_type ) {
+                $discount_per_set = (float) $promo->discount_amount;
+
+                if ( $discount_per_set <= 0 ) {
+                    continue;
+                }
+
+                $unit_price = self::resolve_item_price( $trigger_type, $promo->trigger_product_id );
+                $max_discount = $times * $trigger_qty * $unit_price;
+                $amount       = min( $times * $discount_per_set, $max_discount );
+
+                if ( $amount <= 0 ) {
+                    continue;
+                }
+
+                $promo_discounts[] = array(
+                    'id'     => absint( $promo->id ),
+                    'title'  => sprintf( __( 'Réduction de %s sur « %s »', 'flora-shop' ), Flora_Helpers::format_price( $discount_per_set ), $trigger_name ),
+                    'amount' => round( $amount, 2 ),
+                );
+
+                continue;
+            }
+
             $free_type = isset( $promo->free_type ) && $promo->free_type ? $promo->free_type : 'product';
             $free_id   = absint( $promo->free_product_id );
             $free_qty  = absint( $promo->free_qty );

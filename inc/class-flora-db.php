@@ -27,6 +27,12 @@ class Flora_DB {
         return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
+    public function get_product_by_slug( $slug ) {
+        global $wpdb;
+        $table = $this->table( 'products' );
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE slug = %s AND status = 'publish'", $slug ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
     public function get_products( $args = array() ) {
         global $wpdb;
         $table  = $this->table( 'products' );
@@ -81,6 +87,12 @@ class Flora_DB {
         global $wpdb;
         $table = $this->table( 'packs' );
         return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    public function get_pack_by_slug( $slug ) {
+        global $wpdb;
+        $table = $this->table( 'packs' );
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE slug = %s AND status = 'publish'", $slug ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
     public function get_packs( $args = array() ) {

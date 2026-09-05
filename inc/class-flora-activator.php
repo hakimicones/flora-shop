@@ -112,6 +112,7 @@ class Flora_Activator {
             free_product_id bigint(20) unsigned NOT NULL,
             free_qty int(11) NOT NULL DEFAULT 1,
             discount_percent decimal(5,2) NOT NULL DEFAULT 0.00,
+            discount_amount decimal(10,2) NOT NULL DEFAULT 0.00,
             limit_per_order int(11) NOT NULL DEFAULT 0,
             start_date date DEFAULT NULL,
             end_date date DEFAULT NULL,
@@ -281,6 +282,12 @@ class Flora_Activator {
 
         if ( ! in_array( 'discount_percent', $columns, true ) ) {
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN discount_percent decimal(5,2) NOT NULL DEFAULT 0.00 AFTER free_qty" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( ! in_array( 'discount_amount', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN discount_amount decimal(10,2) NOT NULL DEFAULT 0.00 AFTER discount_percent" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         }
     }
 }

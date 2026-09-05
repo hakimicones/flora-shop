@@ -46,6 +46,8 @@
 
                     if ( 'percent' === $reward_type ) {
                         $reward_label = sprintf( esc_html__( '-%s%%', 'flora-shop' ), $pr->discount_percent );
+                    } elseif ( 'amount' === $reward_type ) {
+                        $reward_label = sprintf( esc_html__( '-%s', 'flora-shop' ), Flora_Helpers::format_price( $pr->discount_amount ) );
                     } elseif ( 'pack' === $free_type && isset( $pack_map[ $pr->free_product_id ] ) ) {
                         $reward_label = sprintf( esc_html__( 'Pack offert : %s', 'flora-shop' ), $pack_map[ $pr->free_product_id ]->name );
                         if ( $pr->free_qty > 1 ) {

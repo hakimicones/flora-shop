@@ -9,22 +9,26 @@
 
     <?php if ( ! empty( $products ) ) : ?>
         <div class="flora-products-grid">
-            <?php foreach ( $products as $p ) : ?>
+            <?php foreach ( $products as $p ) :
+                    $product_detail_url = add_query_arg( 'flora_product', $p->slug, get_permalink( FLORA_PRODUCT_PAGE_ID ) );
+                ?>
                 <div class="flora-product-card" data-product-id="<?php echo esc_attr( $p->id ); ?>">
-                    <div class="flora-product-image">
-                        <?php if ( $p->image_url ) : ?>
-                            <img src="<?php echo esc_url( $p->image_url ); ?>" alt="<?php echo esc_attr( $p->name ); ?>">
-                        <?php else : ?>
-                            <div class="flora-product-placeholder">
-                                <span class="dashicons dashicons-format-image"></span>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ( $p->stock_status === 'outofstock' ) : ?>
-                            <span class="flora-badge-outofstock"><?php esc_html_e( 'Rupture de stock', 'flora-shop' ); ?></span>
-                        <?php endif; ?>
-                    </div>
+                    <a href="<?php echo esc_url( $product_detail_url ); ?>" class="flora-product-image-link">
+                        <div class="flora-product-image">
+                            <?php if ( $p->image_url ) : ?>
+                                <img src="<?php echo esc_url( $p->image_url ); ?>" alt="<?php echo esc_attr( $p->name ); ?>">
+                            <?php else : ?>
+                                <div class="flora-product-placeholder">
+                                    <span class="dashicons dashicons-format-image"></span>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ( $p->stock_status === 'outofstock' ) : ?>
+                                <span class="flora-badge-outofstock"><?php esc_html_e( 'Rupture de stock', 'flora-shop' ); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </a>
                     <div class="flora-product-info">
-                        <h3><?php echo esc_html( $p->name ); ?></h3>
+                        <h3><a href="<?php echo esc_url( $product_detail_url ); ?>" class="flora-product-title-link"><?php echo esc_html( $p->name ); ?></a></h3>
                         <p class="flora-product-price"><?php echo esc_html( Flora_Helpers::format_price( $p->price ) ); ?></p>
                         <?php if ( $p->description ) : ?>
                             <p class="flora-product-desc"><?php echo esc_html( wp_trim_words( $p->description, 20 ) ); ?></p>
@@ -55,23 +59,25 @@
     <?php if ( ! empty( $packs ) ) : ?>
         <h2 class="flora-section-title"><?php esc_html_e( 'Nos Packs', 'flora-shop' ); ?></h2>
         <div class="flora-products-grid">
-            <?php foreach ( $packs as $pk ) : ?>
-                <?php
-                $pack_products_list = $db->get_pack_products( $pk->id );
+            <?php foreach ( $packs as $pk ) :
+                    $pack_detail_url = add_query_arg( 'flora_pack', $pk->slug, get_permalink( FLORA_PRODUCT_PAGE_ID ) );
+                    $pack_products_list = $db->get_pack_products( $pk->id );
                 ?>
                 <div class="flora-product-card flora-pack-card" data-pack-id="<?php echo esc_attr( $pk->id ); ?>">
-                    <div class="flora-product-image">
-                        <?php if ( $pk->image_url ) : ?>
-                            <img src="<?php echo esc_url( $pk->image_url ); ?>" alt="<?php echo esc_attr( $pk->name ); ?>">
-                        <?php else : ?>
-                            <div class="flora-product-placeholder">
-                                <span class="dashicons dashicons-dashicons-category"></span>
-                            </div>
-                        <?php endif; ?>
-                        <span class="flora-badge-pack"><?php esc_html_e( 'PACK', 'flora-shop' ); ?></span>
-                    </div>
+                    <a href="<?php echo esc_url( $pack_detail_url ); ?>" class="flora-product-image-link">
+                        <div class="flora-product-image">
+                            <?php if ( $pk->image_url ) : ?>
+                                <img src="<?php echo esc_url( $pk->image_url ); ?>" alt="<?php echo esc_attr( $pk->name ); ?>">
+                            <?php else : ?>
+                                <div class="flora-product-placeholder">
+                                    <span class="dashicons dashicons-dashicons-category"></span>
+                                </div>
+                            <?php endif; ?>
+                            <span class="flora-badge-pack"><?php esc_html_e( 'PACK', 'flora-shop' ); ?></span>
+                        </div>
+                    </a>
                     <div class="flora-product-info">
-                        <h3><?php echo esc_html( $pk->name ); ?></h3>
+                        <h3><a href="<?php echo esc_url( $pack_detail_url ); ?>" class="flora-product-title-link"><?php echo esc_html( $pk->name ); ?></a></h3>
                         <p class="flora-product-price"><?php echo esc_html( Flora_Helpers::format_price( $pk->pack_price ) ); ?></p>
                         <?php if ( $pk->description ) : ?>
                             <p class="flora-product-desc"><?php echo esc_html( wp_trim_words( $pk->description, 20 ) ); ?></p>

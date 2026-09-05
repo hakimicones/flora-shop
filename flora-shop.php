@@ -18,13 +18,15 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'FLORA_SHOP_VERSION', '1.1.0' );
+define( 'FLORA_SHOP_VERSION', '1.2.0' );
 define( 'FLORA_SHOP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FLORA_SHOP_URL', plugin_dir_url( __FILE__ ) );
 define( 'FLORA_SHOP_BASENAME', plugin_basename( __FILE__ ) );
+define( 'FLORA_SHOP_PAGE_ID', 7157 );
 define( 'FLORA_CHECKOUT_PAGE_ID', 7159 );
 define( 'FLORA_ORDER_CONFIRM_PAGE_ID', 7160 );
 define( 'FLORA_CART_PAGE_ID', 7158 );
+define( 'FLORA_PRODUCT_PAGE_ID', 7161 );
 
 require_once FLORA_SHOP_PATH . 'inc/class-flora-helpers.php';
 require_once FLORA_SHOP_PATH . 'inc/class-flora-db.php';

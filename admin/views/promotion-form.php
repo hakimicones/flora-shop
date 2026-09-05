@@ -55,6 +55,7 @@
                     <select id="reward_type" name="reward_type" class="flora-promo-reward-type">
                         <option value="free" <?php selected( $reward_type, 'free' ); ?>><?php esc_html_e( 'Produit / pack offert (gratuit)', 'flora-shop' ); ?></option>
                         <option value="percent" <?php selected( $reward_type, 'percent' ); ?>><?php esc_html_e( 'Réduction (%)', 'flora-shop' ); ?></option>
+                        <option value="amount" <?php selected( $reward_type, 'amount' ); ?>><?php esc_html_e( 'Réduction (montant)', 'flora-shop' ); ?></option>
                     </select>
                 </td>
             </tr>
@@ -93,15 +94,24 @@
             </tr>
             <tr class="flora-promo-reward-row flora-promo-free-row" data-type="free" data-free-type="product">
                 <th><label for="free_qty"><?php esc_html_e( 'Quantité offerte', 'flora-shop' ); ?> *</label></th>
-                <td><input type="number" id="free_qty" name="free_qty" class="small-text" min="1" required value="<?php echo $promo ? esc_attr( $promo->free_qty ) : '1'; ?>"></td>
+                <td><input type="number" id="free_qty" name="free_qty" class="small-text" min="1" value="<?php echo $promo ? esc_attr( $promo->free_qty ) : '1'; ?>"></td>
             </tr>
 
             <?php /* ===== RÉCOMPENSE RÉDUCTION % ===== */ ?>
             <tr class="flora-promo-reward-row" data-type="percent">
                 <th><label for="discount_percent"><?php esc_html_e( 'Réduction (%)', 'flora-shop' ); ?> *</label></th>
                 <td>
-                    <input type="number" id="discount_percent" name="discount_percent" class="small-text" min="1" max="100" step="0.01" required value="<?php echo $promo ? esc_attr( $promo->discount_percent ) : '10'; ?>">
+                    <input type="number" id="discount_percent" name="discount_percent" class="small-text" min="1" max="100" step="0.01" value="<?php echo $promo ? esc_attr( $promo->discount_percent ) : '10'; ?>">
                     <p class="description"><?php esc_html_e( 'Pourcentage appliqué sur les articles déclencheurs éligibles.', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
+
+            <?php /* ===== RÉCOMPENSE RÉDUCTION MONTANT ===== */ ?>
+            <tr class="flora-promo-reward-row" data-type="amount">
+                <th><label for="discount_amount"><?php esc_html_e( 'Montant de la réduction (DA)', 'flora-shop' ); ?> *</label></th>
+                <td>
+                    <input type="number" id="discount_amount" name="discount_amount" class="small-text" min="1" step="0.01" value="<?php echo $promo ? esc_attr( $promo->discount_amount ) : '300'; ?>">
+                    <p class="description"><?php esc_html_e( 'Montant déduit par lot de déclencheur éligible.', 'flora-shop' ); ?></p>
                 </td>
             </tr>
 
@@ -143,7 +153,9 @@
         var freeType = $('#free_type').val();
 
         $('.flora-promo-trigger-row').each(function() {
-            $(this).toggle($(this).data('type') === triggerType);
+            var visible = $(this).data('type') === triggerType;
+            $(this).toggle(visible);
+            $(this).find('input, select').prop('disabled', !visible);
         });
 
         $('.flora-promo-reward-row').each(function() {
@@ -152,11 +164,16 @@
                 show = rewardType === 'free' && $(this).data('free-type') === freeType;
             }
             $(this).toggle(show);
+            $(this).find('input, select').prop('disabled', !show);
         });
 
         var triggerRequired = triggerType === 'product' ? '#trigger_product_id' : '#trigger_pack_id';
         var triggerOptional = triggerType === 'product' ? '#trigger_pack_id' : '#trigger_product_id';
         $(triggerRequired).prop('required', true);
         $(triggerOptional).prop('required', false);
+    }
+
+    floraPromoToggle();
+    $('#trigger_type, #reward_type, #free_type').on('change', floraPromoToggle);
 })(jQuery);
 </script>

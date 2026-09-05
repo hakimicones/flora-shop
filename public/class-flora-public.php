@@ -7,6 +7,7 @@ class Flora_Public {
 
     public function __construct() {
         add_shortcode( 'flora_products', array( $this, 'shortcode_products' ) );
+        add_shortcode( 'flora_product', array( $this, 'shortcode_product' ) );
         add_shortcode( 'flora_cart', array( $this, 'shortcode_cart' ) );
         add_shortcode( 'flora_checkout', array( $this, 'shortcode_checkout' ) );
         add_shortcode( 'flora_order_confirm', array( $this, 'shortcode_order_confirm' ) );
@@ -17,7 +18,7 @@ class Flora_Public {
     public function enqueue_assets() {
         if ( ! is_page() && ! is_short_code() ) {
             global $post;
-            if ( ! is_a( $post, 'WP_Post' ) || ! has_shortcode( $post->post_content, 'flora_products' ) && ! has_shortcode( $post->post_content, 'flora_cart' ) && ! has_shortcode( $post->post_content, 'flora_checkout' ) && ! has_shortcode( $post->post_content, 'flora_order_confirm' ) ) {
+            if ( ! is_a( $post, 'WP_Post' ) || ! has_shortcode( $post->post_content, 'flora_products' ) && ! has_shortcode( $post->post_content, 'flora_product' ) && ! has_shortcode( $post->post_content, 'flora_cart' ) && ! has_shortcode( $post->post_content, 'flora_checkout' ) && ! has_shortcode( $post->post_content, 'flora_order_confirm' ) ) {
                 return;
             }
         }
@@ -33,6 +34,8 @@ class Flora_Public {
                 'checkout'      => get_permalink( FLORA_CHECKOUT_PAGE_ID ),
                 'orderConfirm'  => get_permalink( FLORA_ORDER_CONFIRM_PAGE_ID ),
                 'cart'          => get_permalink( FLORA_CART_PAGE_ID ),
+                'shop'          => get_permalink( FLORA_SHOP_PAGE_ID ),
+                'product'       => get_permalink( FLORA_PRODUCT_PAGE_ID ),
             ),
             'i18n'    => array(
                 'added'      => __( 'Ajouté au panier !', 'flora-shop' ),
@@ -41,6 +44,7 @@ class Flora_Public {
                 'error'      => __( 'Une erreur est survenue.', 'flora-shop' ),
                 'confirm'    => __( 'Voulez-vous vraiment vider le panier ?', 'flora-shop' ),
                 'processing' => __( 'Traitement en cours...', 'flora-shop' ),
+                'added_free' => __( 'Article offert ajouté', 'flora-shop' ),
             ),
         ) );
     }
@@ -57,6 +61,113 @@ class Flora_Public {
         ob_start();
         include FLORA_SHOP_PATH . 'public/views/product-listing.php';
         return ob_get_clean();
+    }
+
+    public function shortcode_product() {
+        $db = Flora_DB::get_instance();
+
+        $product_slug = isset( $_GET['flora_product'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_product'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $pack_slug    = isset( $_GET['flora_pack'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_pack'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+
+        if ( $pack_slug ) {
+            $pack            = $db->get_pack_by_slug( $pack_slug );
+            $pack_products   = array();
+            $pack_promotions = array();
+            $promo_config    = array();
+
+            if ( $pack ) {
+                $pack_products = $db->get_pack_products( $pack->id );
+                $promo_config  = self::build_promo_config( $db->get_promotions( true ), 'pack', $pack->id, $pack->name );
+                foreach ( $promo_config as $entry ) {
+                    $pack_promotions[] = (object) $entry;
+                }
+            }
+
+            ob_start();
+            include FLORA_SHOP_PATH . 'public/views/pack-detail.php';
+            return ob_get_clean();
+        }
+
+        $product = null;
+        if ( $product_slug ) {
+            $product = $db->get_product_by_slug( $product_slug );
+        }
+
+        $product_promotions = array();
+        $promo_config       = array();
+        if ( $product ) {
+            $promo_config      = self::build_promo_config( $db->get_promotions( true ), 'product', $product->id, $product->name );
+            foreach ( $promo_config as $entry ) {
+                $product_promotions[] = (object) $entry;
+            }
+        }
+
+        ob_start();
+        include FLORA_SHOP_PATH . 'public/views/product-detail.php';
+        return ob_get_clean();
+    }
+
+    private static function build_promo_config( $promotions, $trigger_type, $trigger_id, $trigger_name ) {
+        $db    = Flora_DB::get_instance();
+        $config = array();
+
+        foreach ( $promotions as $promo ) {
+            $promo_trigger = $promo->trigger_type ? $promo->trigger_type : 'product';
+            if ( $promo_trigger !== $trigger_type || absint( $promo->trigger_product_id ) !== (int) $trigger_id ) {
+                continue;
+            }
+
+            $trigger_qty = absint( $promo->trigger_qty );
+            $reward_type = $promo->reward_type ? $promo->reward_type : 'free';
+            $limit       = absint( $promo->limit_per_order );
+
+            $entry = array(
+                'id'          => absint( $promo->id ),
+                'trigger_qty' => $trigger_qty,
+                'limit'       => $limit,
+                'reward_type' => $reward_type,
+                'is_free'     => false,
+            );
+
+            if ( 'percent' === $reward_type ) {
+                $percent = (float) $promo->discount_percent;
+                if ( $percent <= 0 ) {
+                    continue;
+                }
+                $entry['title'] = sprintf( __( '%s%% de réduction sur « %s » dès %d article(s)', 'flora-shop' ), rtrim( rtrim( number_format( $percent, 2, '.', '' ), '0' ), '.' ), $trigger_name, $trigger_qty );
+                $entry['value'] = $percent;
+            } elseif ( 'amount' === $reward_type ) {
+                $amount = (float) $promo->discount_amount;
+                if ( $amount <= 0 ) {
+                    continue;
+                }
+                $entry['title'] = sprintf( __( 'Réduction de %s sur « %s » dès %d article(s)', 'flora-shop' ), Flora_Helpers::format_price( $amount ), $trigger_name, $trigger_qty );
+                $entry['value'] = $amount;
+            } else {
+                $free_type = isset( $promo->free_type ) && $promo->free_type ? $promo->free_type : 'product';
+                $free_id   = absint( $promo->free_product_id );
+                $free_qty  = absint( $promo->free_qty );
+                if ( $free_id <= 0 || $free_qty <= 0 ) {
+                    continue;
+                }
+
+                if ( 'pack' === $free_type ) {
+                    $free_pack = $db->get_pack( $free_id );
+                    $free_name = $free_pack ? $free_pack->name : __( 'Pack', 'flora-shop' );
+                } else {
+                    $free_prod = $db->get_product( $free_id );
+                    $free_name = $free_prod ? $free_prod->name : __( 'Produit', 'flora-shop' );
+                }
+
+                $entry['title']   = sprintf( __( 'Achetez %d × %s et recevez %d × %s offert(s)', 'flora-shop' ), $trigger_qty, $trigger_name, $free_qty, $free_name );
+                $entry['value']   = $free_qty;
+                $entry['is_free'] = true;
+            }
+
+            $config[] = $entry;
+        }
+
+        return $config;
     }
 
     public function shortcode_cart() {

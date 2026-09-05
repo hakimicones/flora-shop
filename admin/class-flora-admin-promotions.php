@@ -38,17 +38,18 @@ class Flora_Admin_Promotions {
 
             $data = array(
                 'trigger_type'       => in_array( $trigger_type, array( 'product', 'pack' ), true ) ? $trigger_type : 'product',
-                'trigger_product_id' => absint( $_POST[ 'pack' === $trigger_type ? 'trigger_pack_id' : 'trigger_product_id' ] ),
-                'trigger_qty'        => absint( $_POST['trigger_qty'] ),
-                'reward_type'        => in_array( $reward_type, array( 'free', 'percent' ), true ) ? $reward_type : 'free',
+                'trigger_product_id' => absint( isset( $_POST[ 'pack' === $trigger_type ? 'trigger_pack_id' : 'trigger_product_id' ] ) ? $_POST[ 'pack' === $trigger_type ? 'trigger_pack_id' : 'trigger_product_id' ] : 0 ),
+                'trigger_qty'        => absint( isset( $_POST['trigger_qty'] ) ? $_POST['trigger_qty'] : 1 ),
+                'reward_type'        => in_array( $reward_type, array( 'free', 'percent', 'amount' ), true ) ? $reward_type : 'free',
                 'free_type'          => in_array( $free_type, array( 'product', 'pack' ), true ) ? $free_type : 'product',
-                'free_product_id'    => 'free' === $reward_type ? absint( $_POST[ 'pack' === $free_type ? 'free_pack_id' : 'free_product_id' ] ) : 0,
-                'free_qty'           => 'free' === $reward_type ? absint( $_POST['free_qty'] ) : 0,
-                'discount_percent'   => Flora_Helpers::sanitize_float( isset( $_POST['discount_percent'] ) ? $_POST['discount_percent'] : 0 ),
-                'limit_per_order'    => absint( $_POST['limit_per_order'] ),
-                'start_date'         => sanitize_text_field( $_POST['start_date'] ),
-                'end_date'           => sanitize_text_field( $_POST['end_date'] ),
-                'status'             => sanitize_text_field( $_POST['status'] ),
+                'free_product_id'    => 'free' === $reward_type ? absint( isset( $_POST[ 'pack' === $free_type ? 'free_pack_id' : 'free_product_id' ] ) ? $_POST[ 'pack' === $free_type ? 'free_pack_id' : 'free_product_id' ] : 0 ) : 0,
+                'free_qty'           => 'free' === $reward_type ? absint( isset( $_POST['free_qty'] ) ? $_POST['free_qty'] : 1 ) : 0,
+                'discount_percent'   => 'percent' === $reward_type ? Flora_Helpers::sanitize_float( isset( $_POST['discount_percent'] ) ? $_POST['discount_percent'] : 0 ) : 0,
+                'discount_amount'    => 'amount' === $reward_type ? Flora_Helpers::sanitize_float( isset( $_POST['discount_amount'] ) ? $_POST['discount_amount'] : 0 ) : 0,
+                'limit_per_order'    => absint( isset( $_POST['limit_per_order'] ) ? $_POST['limit_per_order'] : 0 ),
+                'start_date'         => sanitize_text_field( isset( $_POST['start_date'] ) ? $_POST['start_date'] : '' ),
+                'end_date'           => sanitize_text_field( isset( $_POST['end_date'] ) ? $_POST['end_date'] : '' ),
+                'status'             => sanitize_text_field( isset( $_POST['status'] ) ? $_POST['status'] : 'active' ),
             );
 
             $id = isset( $_POST['promo_id'] ) ? absint( $_POST['promo_id'] ) : 0;

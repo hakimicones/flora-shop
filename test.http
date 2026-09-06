@@ -1,0 +1,9 @@
+curl -X POST http://172.18.176.1:1234/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-lm-puotDtpM:ujfRm3eUXQ93Dqxw7Pe5" \
+  -d '{
+    "model": "mistralai/ministral-3-3b",
+    "messages": [
+      {"role": "user", "content": "Hello, are you alive?"}
+    ]
+  }'

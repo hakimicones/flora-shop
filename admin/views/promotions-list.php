@@ -1,3 +1,5 @@
+<?php /* Vue de la liste des promotions : tableau des déclencheurs, récompenses, limites et statuts. */ ?>
+
 <div class="wrap flora-admin">
     <h1 class="wp-heading-inline"><?php esc_html_e( 'Promotions', 'flora-shop' ); ?></h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-promotions&action=add' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Ajouter une promotion', 'flora-shop' ); ?></a>
@@ -19,6 +21,7 @@
             <?php if ( empty( $promotions ) ) : ?>
                 <tr><td colspan="7"><?php esc_html_e( 'Aucune promotion configurée.', 'flora-shop' ); ?></td></tr>
             <?php else : ?>
+                <?php /* --- Préparation des libellés lisibles pour le déclencheur et la récompense de chaque promotion --- */ ?>
                 <?php
                 $product_map = array();
                 foreach ( $all_products as $ap ) {
@@ -62,6 +65,7 @@
                         $reward_label = esc_html__( 'Inconnu', 'flora-shop' );
                     }
                 ?>
+                    <?php /* --- Lignes du tableau : une promotion par ligne --- */ ?>
                     <tr>
                         <td><?php echo esc_html( $pr->id ); ?></td>
                         <td><?php echo wp_kses_post( $trigger_label ); ?></td>
@@ -73,6 +77,7 @@
                                 <?php echo esc_html( ucfirst( $pr->status ) ); ?>
                             </span>
                         </td>
+                        <?php /* --- Colonne actions : lien modifier + formulaire de suppression --- */ ?>
                         <td>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-promotions&action=edit&id=' . $pr->id ) ); ?>"><?php esc_html_e( 'Modifier', 'flora-shop' ); ?></a> |
                             <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Supprimer cette promotion ?', 'flora-shop' ); ?>');">

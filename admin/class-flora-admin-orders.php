@@ -3,9 +3,16 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Page admin « Commandes » : affiche la liste des commandes (avec filtre de
+ * statut), la vue de détail d'une commande, et traite le changement de statut
+ * d'une commande (POST). Accès restreint à la capability 'manage_options' ;
+ * nonce vérifié via Flora_Helpers::verify_nonce().
+ */
 class Flora_Admin_Orders {
 
     public static function render() {
+        // Point d'entrée de la page : vérifie la permission, gère le POST puis affiche liste ou détail.
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Accès non autorisé.', 'flora-shop' ) );
         }
@@ -22,6 +29,7 @@ class Flora_Admin_Orders {
     }
 
     private static function handle_actions() {
+        // Traite l'action POST de mise à jour du statut d'une commande.
         if ( ! isset( $_POST['flora_action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
             return;
         }
@@ -31,6 +39,7 @@ class Flora_Admin_Orders {
         if ( 'update_status' === $post_action ) {
             Flora_Helpers::verify_nonce( 'flora_update_order' );
             $db   = Flora_DB::get_instance();
+            // ID assaini par absint ; statut nettoyé via sanitize_text_field avant mise à jour.
             $id   = absint( $_POST['order_id'] );
             $status = sanitize_text_field( $_POST['status'] );
             $db->update_order( $id, array( 'status' => $status ) );
@@ -40,7 +49,9 @@ class Flora_Admin_Orders {
     }
 
     private static function render_list() {
+        // Affiche la liste des commandes avec option de filtrage par statut (GET).
         $db     = Flora_DB::get_instance();
+        // Filtre de statut passé en GET, assaini par sanitize_text_field.
         $status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 
         $args = array( 'limit' => 50 );
@@ -59,7 +70,9 @@ class Flora_Admin_Orders {
     }
 
     private static function render_detail( $order_id ) {
+        // Affiche la fiche détaillée d'une commande : infos client, lignes, transport.
         $db    = Flora_DB::get_instance();
+        // order_id arrive déjà sous forme d'entier (absint) depuis render().
         $order = $db->get_order( $order_id );
 
         if ( ! $order ) {

@@ -1,6 +1,9 @@
+<?php /* Vue de la liste des commandes : onglets de filtre par statut, puis tableau des commandes. */ ?>
+
 <div class="wrap flora-admin">
     <h1><?php esc_html_e( 'Commandes', 'flora-shop' ); ?></h1>
 
+    <?php /* --- Filtres par statut (toutes, en attente, en cours, terminées) --- */ ?>
     <h2 class="nav-tab-wrapper">
         <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-orders' ) ); ?>" class="nav-tab <?php echo empty( $status_filter ) ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Toutes', 'flora-shop' ); ?></a>
         <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-orders&status=pending' ) ); ?>" class="nav-tab <?php echo 'pending' === $status_filter ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'En attente', 'flora-shop' ); ?></a>
@@ -22,6 +25,7 @@
             </tr>
         </thead>
         <tbody>
+            <?php /* --- Lignes du tableau : une commande par ligne, avec lien vers le détail --- */ ?>
             <?php if ( empty( $orders ) ) : ?>
                 <tr><td colspan="8"><?php esc_html_e( 'Aucune commande trouvée.', 'flora-shop' ); ?></td></tr>
             <?php else : ?>

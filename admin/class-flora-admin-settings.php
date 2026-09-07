@@ -3,9 +3,17 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Page admin « Paramètres » : affiche le formulaire de configuration (devise,
+ * seuil de livraison gratuite, remises quantité produits et panier) et traite
+ * la sauvegarde via POST. Accès restreint à la capability 'manage_options' ;
+ * nonce vérifié via Flora_Helpers::verify_nonce() et champs assainis avant
+ * enregistrement dans les options.
+ */
 class Flora_Admin_Settings {
 
     public static function render() {
+        // Point d'entrée de la page : vérifie la permission, gère le POST puis inclut la vue des réglages.
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Accès non autorisé.', 'flora-shop' ) );
         }
@@ -24,6 +32,7 @@ class Flora_Admin_Settings {
     }
 
     private static function handle_actions() {
+        // Traite l'action POST d'enregistrement des paramètres.
         if ( ! isset( $_POST['flora_action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
             return;
         }
@@ -33,9 +42,12 @@ class Flora_Admin_Settings {
         if ( 'save_settings' === $post_action ) {
             Flora_Helpers::verify_nonce( 'flora_save_settings' );
 
+            // Enregistrement des options simples, valeurs assainies avant écriture.
             update_option( 'flora_currency', Flora_Helpers::sanitize_text( $_POST['currency'] ) );
             update_option( 'flora_free_shipping_threshold', Flora_Helpers::sanitize_float( $_POST['free_shipping_threshold'] ) );
 
+            // Remises produits : tableau revalidé ligne par ligne ; chaque entrée doit
+            // fournir product_id, min_qty et percent non vides, convertis en entiers.
             $product_discounts = array();
             if ( ! empty( $_POST['product_discounts'] ) && is_array( $_POST['product_discounts'] ) ) {
                 foreach ( $_POST['product_discounts'] as $pd ) {
@@ -50,6 +62,7 @@ class Flora_Admin_Settings {
             }
             update_option( 'flora_product_discounts', $product_discounts );
 
+            // Remises panier : même revalidation par ligne ; min_total en float, percent en entier.
             $cart_discounts = array();
             if ( ! empty( $_POST['cart_discounts'] ) && is_array( $_POST['cart_discounts'] ) ) {
                 foreach ( $_POST['cart_discounts'] as $cd ) {

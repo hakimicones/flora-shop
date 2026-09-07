@@ -1,8 +1,12 @@
+<?php /* Vue du détail d'une commande : infos client, articles commandés, résumé des montants et changement de statut. */ ?>
+
 <div class="wrap flora-admin">
     <h1><?php esc_html_e( 'Détails de la commande', 'flora-shop' ); ?> <?php echo esc_html( $order->order_number ); ?></h1>
 
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-orders' ) ); ?>" class="button">&larr; <?php esc_html_e( 'Retour aux commandes', 'flora-shop' ); ?></a>
 
+    <?php /* --- Colonne principale : informations client + détail des articles --- */ ?>
+    <?php /* --- Infos du client (identité, coordonnées, wilaya et commune) --- */ ?>
     <div class="flora-dashboard-columns" style="margin-top:20px;">
         <div class="flora-dashboard-main">
             <div class="flora-card">
@@ -23,6 +27,7 @@
                 </table>
             </div>
 
+            <?php /* --- Tableau des articles commandés, avec éventuelle ligne gratuite (promotion) --- */ ?>
             <div class="flora-card">
                 <h2><?php esc_html_e( 'Articles commandés', 'flora-shop' ); ?></h2>
                 <table class="wp-list-table widefat fixed striped">
@@ -63,6 +68,7 @@
             </div>
         </div>
 
+        <?php /* --- Colonne latérale : résumé des montants, changement de statut et notes --- */ ?>
         <div class="flora-dashboard-sidebar">
             <div class="flora-card">
                 <h2><?php esc_html_e( 'Résumé', 'flora-shop' ); ?></h2>
@@ -76,6 +82,7 @@
                 </table>
             </div>
 
+            <?php /* --- Formulaire de mise à jour du statut (POST sécurisé par nonce) --- */ ?>
             <div class="flora-card">
                 <h2><?php esc_html_e( 'Changer le statut', 'flora-shop' ); ?></h2>
                 <form method="post">

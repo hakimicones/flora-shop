@@ -1,10 +1,18 @@
+<!--
+    Page de commande (shortcode [flora_checkout]).
+    Formulaire de livraison (client + wilaya/commune) et résumé de la commande ;
+    la soumission est gérée par cart.js via l'endpoint REST /checkout (nonce wp_rest).
+-->
 <div class="flora-shop-wrap flora-checkout-wrap">
     <h2><?php esc_html_e( 'Passer la commande', 'flora-shop' ); ?></h2>
 
     <div class="flora-checkout-layout">
+        <!-- Formulaire : coordonnées du client et informations de livraison. -->
         <div class="flora-checkout-form-wrap">
             <form id="flora-checkout-form">
                 <h3><?php esc_html_e( 'Informations de livraison', 'flora-shop' ); ?></h3>
+
+                <!-- Identité du client : prénom, nom, email et téléphone (champs requis). -->
 
                 <div class="flora-form-row flora-form-col-2">
                     <div class="flora-form-field">
@@ -35,6 +43,7 @@
                     </div>
                 </div>
 
+                <!-- Wilaya (liste préchargée) et commune (dépendante de la wilaya, remplie en JS). -->
                 <div class="flora-form-row flora-form-col-2">
                     <div class="flora-form-field">
                         <label for="wilaya"><?php esc_html_e( 'Wilaya', 'flora-shop' ); ?> *</label>
@@ -68,6 +77,7 @@
             </form>
         </div>
 
+        <!-- Résumé de la commande : récapitulatif du panier et totaux, chargé et affiché par cart.js. -->
         <div class="flora-checkout-summary">
             <h3><?php esc_html_e( 'Résumé de la commande', 'flora-shop' ); ?></h3>
             <div id="flora-checkout-summary-content">

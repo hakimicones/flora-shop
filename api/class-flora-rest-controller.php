@@ -3,17 +3,29 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Contrôleur REST de flora-shop.
+ *
+ * Enregistre toutes les routes de l'API sous le namespace « flora-shop/v1 ».
+ *
+ * Sécurité :
+ * - Les routes de lecture (GET) sont ouvertes au public (permission_callback => __return_true) ;
+ * - La route /checkout est protégée par le nonce WordPress « wp_rest » (en-tête X-WP-Nonce) ;
+ * - La route /admin/stats est réservée aux utilisateurs ayant la capacité « manage_options ».
+ */
 class Flora_REST_Controller {
 
     private $namespace = 'flora-shop/v1';
 
     public function register_routes() {
+        // GET /cart — Retourne le contenu actuel du panier de la session.
         register_rest_route( $this->namespace, '/cart', array(
             'methods'             => 'GET',
             'callback'            => array( $this, 'get_cart' ),
             'permission_callback' => '__return_true',
         ) );
 
+        // POST /cart/add — Ajoute un article au panier (type : 'product'|'pack', id, quantity).
         register_rest_route( $this->namespace, '/cart/add', array(
             'methods'             => 'POST',
             'callback'            => array( $this, 'add_to_cart' ),
@@ -25,6 +37,7 @@ class Flora_REST_Controller {
             ),
         ) );
 
+        // POST /cart/update — Met à jour la quantité de l'article situé à l'index donné (index, quantity).
         register_rest_route( $this->namespace, '/cart/update', array(
             'methods'             => 'POST',
             'callback'            => array( $this, 'update_cart' ),
@@ -35,6 +48,7 @@ class Flora_REST_Controller {
             ),
         ) );
 
+        // POST /cart/remove — Retire du panier l'article situé à l'index donné.
         register_rest_route( $this->namespace, '/cart/remove', array(
             'methods'             => 'POST',
             'callback'            => array( $this, 'remove_from_cart' ),
@@ -44,12 +58,14 @@ class Flora_REST_Controller {
             ),
         ) );
 
+        // POST /cart/clear — Vide entièrement le panier de la session.
         register_rest_route( $this->namespace, '/cart/clear', array(
             'methods'             => 'POST',
             'callback'            => array( $this, 'clear_cart' ),
             'permission_callback' => '__return_true',
         ) );
 
+        // POST /cart/location — Enregistre la wilaya et la commune de livraison choisies (wilaya_code, commune_id).
         register_rest_route( $this->namespace, '/cart/location', array(
             'methods'             => 'POST',
             'callback'            => array( $this, 'set_location' ),
@@ -60,42 +76,49 @@ class Flora_REST_Controller {
             ),
         ) );
 
+        // POST /checkout — Valide la commande ; nécessite le nonce « wp_rest » vérifié par check_nonce().
         register_rest_route( $this->namespace, '/checkout', array(
             'methods'             => 'POST',
             'callback'            => array( $this, 'checkout' ),
             'permission_callback' => array( $this, 'check_nonce' ),
         ) );
 
+        // GET /orders/{number} — Récupère une commande à partir de son numéro (utilisé par la confirmation).
         register_rest_route( $this->namespace, '/orders/(?P<number>[A-Za-z0-9-]+)', array(
             'methods'             => 'GET',
             'callback'            => array( $this, 'get_order' ),
             'permission_callback' => '__return_true',
         ) );
 
+        // GET /wilayas — Liste des wilayas disponibles pour la livraison.
         register_rest_route( $this->namespace, '/wilayas', array(
             'methods'             => 'GET',
             'callback'            => array( $this, 'get_wilayas' ),
             'permission_callback' => '__return_true',
         ) );
 
+        // GET /communes/{wilaya_code} — Communes de la wilaya dont le code est passé en paramètre.
         register_rest_route( $this->namespace, '/communes/(?P<wilaya_code>\d+)', array(
             'methods'             => 'GET',
             'callback'            => array( $this, 'get_communes' ),
             'permission_callback' => '__return_true',
         ) );
 
+        // GET /products — Liste des produits du catalogue.
         register_rest_route( $this->namespace, '/products', array(
             'methods'             => 'GET',
             'callback'            => array( $this, 'get_products' ),
             'permission_callback' => '__return_true',
         ) );
 
+        // GET /packs — Liste des packs du catalogue.
         register_rest_route( $this->namespace, '/packs', array(
             'methods'             => 'GET',
             'callback'            => array( $this, 'get_packs' ),
             'permission_callback' => '__return_true',
         ) );
 
+        // GET /admin/stats — Statistiques d'administration (réservé aux administrateurs, voir admin_permission()).
         register_rest_route( $this->namespace, '/admin/stats', array(
             'methods'             => 'GET',
             'callback'            => array( $this, 'admin_stats' ),
@@ -103,19 +126,23 @@ class Flora_REST_Controller {
         ) );
     }
 
+    // check_nonce : vérifie le nonce WordPress « wp_rest » présent dans l'en-tête X-WP-Nonce de la requête.
     public function check_nonce( $request ) {
         $nonce = $request->get_header( 'X-WP-Nonce' );
         return $nonce && wp_verify_nonce( $nonce, 'wp_rest' );
     }
 
+    // admin_permission : autorise l'accès uniquement aux utilisateurs pouvant gérer les options du site (administrateurs).
     public function admin_permission() {
         return current_user_can( 'manage_options' );
     }
 
+    // get_cart : renvoie le panier de la session au format JSON.
     public function get_cart( $request ) {
         return rest_ensure_response( Flora_Cart::get_cart_json() );
     }
 
+    // add_to_cart : ajoute un produit ou un pack au panier et renvoie le panier mis à jour.
     public function add_to_cart( $request ) {
         $type     = $request->get_param( 'type' );
         $id       = $request->get_param( 'id' );
@@ -129,6 +156,7 @@ class Flora_REST_Controller {
         ) );
     }
 
+    // update_cart : applique la nouvelle quantité à l'article situé à l'index indiqué.
     public function update_cart( $request ) {
         $index    = $request->get_param( 'index' );
         $quantity = $request->get_param( 'quantity' );
@@ -141,6 +169,7 @@ class Flora_REST_Controller {
         ) );
     }
 
+    // remove_from_cart : supprime du panier l'article situé à l'index indiqué.
     public function remove_from_cart( $request ) {
         $index = $request->get_param( 'index' );
         Flora_Cart::remove_item( $index );
@@ -151,6 +180,7 @@ class Flora_REST_Controller {
         ) );
     }
 
+    // clear_cart : supprime tous les articles du panier de la session.
     public function clear_cart( $request ) {
         Flora_Cart::clear();
 
@@ -160,6 +190,7 @@ class Flora_REST_Controller {
         ) );
     }
 
+    // set_location : mémorise la wilaya et la commune de livraison dans le panier (calcul du transport).
     public function set_location( $request ) {
         $wilaya_code = $request->get_param( 'wilaya_code' );
         $commune_id  = $request->get_param( 'commune_id' );
@@ -172,6 +203,7 @@ class Flora_REST_Controller {
         ) );
     }
 
+    // checkout : valide les informations de facturation puis lance le traitement de la commande (retour 201 si succès).
     public function checkout( $request ) {
         $params = $request->get_json_params();
 
@@ -204,6 +236,7 @@ class Flora_REST_Controller {
         ), 201 );
     }
 
+    // get_order : charge une commande et ses lignes de détail pour l'écran de confirmation.
     public function get_order( $request ) {
         $number = $request->get_param( 'number' );
         $db     = Flora_DB::get_instance();
@@ -221,12 +254,14 @@ class Flora_REST_Controller {
         ) );
     }
 
+    // get_wilayas : renvoie la liste des wilayas (alimente le menu déroulant du checkout).
     public function get_wilayas( $request ) {
         $db      = Flora_DB::get_instance();
         $wilayas = $db->get_wilayas();
         return rest_ensure_response( $wilayas );
     }
 
+    // get_communes : renvoie les communes de la wilaya dont le code est passé en paramètre.
     public function get_communes( $request ) {
         $db          = Flora_DB::get_instance();
         $wilaya_code = $request->get_param( 'wilaya_code' );
@@ -234,18 +269,21 @@ class Flora_REST_Controller {
         return rest_ensure_response( $communes );
     }
 
+    // get_products : renvoie la liste des produits du catalogue.
     public function get_products( $request ) {
         $db       = Flora_DB::get_instance();
         $products = $db->get_products();
         return rest_ensure_response( $products );
     }
 
+    // get_packs : renvoie la liste des packs du catalogue.
     public function get_packs( $request ) {
         $db   = Flora_DB::get_instance();
         $packs = $db->get_packs();
         return rest_ensure_response( $packs );
     }
 
+    // admin_stats : agrège les statistiques (commandes, chiffre d'affaires, meilleures ventes, graphique 30 jours).
     public function admin_stats( $request ) {
         $db = Flora_DB::get_instance();
 

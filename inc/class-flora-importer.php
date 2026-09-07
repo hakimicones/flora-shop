@@ -3,8 +3,13 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Classe d'importation des données géographiques (wilayas et communes)
+ * à partir d'un fichier SQL dédié.
+ */
 class Flora_Importer {
 
+    // Lance l'importation complète : lit le fichier SQL puis importe les wilayas et communes.
     public static function run( $sql_file_path = '' ) {
         if ( empty( $sql_file_path ) ) {
             $sql_file_path = ABSPATH . '../wilaya/mysql_wilayas_communes.sql';
@@ -28,6 +33,7 @@ class Flora_Importer {
         );
     }
 
+    // Importe les wilayas : parse les INSERT du fichier SQL et insère/met à jour en base.
     private static function import_wilayas( $content ) {
         global $wpdb;
         $table = $wpdb->prefix . 'flora_wilayas';
@@ -65,6 +71,7 @@ class Flora_Importer {
         return $count;
     }
 
+    // Importe les communes : parse les INSERT et insère/met à jour par code postal.
     private static function import_communes( $content ) {
         global $wpdb;
         $table = $wpdb->prefix . 'flora_communes';
@@ -110,6 +117,7 @@ class Flora_Importer {
         return $count;
     }
 
+    // Extrait la liste des lignes (valeurs SQL) depuis un bloc VALUES en gérant les chaînes échappées.
     private static function parse_values( $values_block ) {
         $values_block = trim( $values_block );
         if ( substr( $values_block, -1 ) === ';' ) {
@@ -171,6 +179,7 @@ class Flora_Importer {
         return $rows;
     }
 
+    // Tokenise une seule ligne SQL (parenthèses) en un tableau de valeurs PHP.
     private static function parse_row_tokens( $row_text ) {
         $row_text = trim( $row_text );
         if ( substr( $row_text, 0, 1 ) === '(' ) {

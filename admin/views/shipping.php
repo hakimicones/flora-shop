@@ -1,13 +1,18 @@
+<?php /* Vue de gestion du transport : trois onglets pour les wilayas, les communes et les tarifs de livraison. */ ?>
+
 <div class="wrap flora-admin">
     <h1><?php esc_html_e( 'Gestion du transport', 'flora-shop' ); ?></h1>
 
+    <?php /* --- Onglets de navigation entre wilayas, communes et tarifs --- */ ?>
     <h2 class="nav-tab-wrapper">
         <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-shipping&tab=wilayas' ) ); ?>" class="nav-tab <?php echo 'wilayas' === $tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Wilayas', 'flora-shop' ); ?></a>
         <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-shipping&tab=communes' ) ); ?>" class="nav-tab <?php echo 'communes' === $tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Communes', 'flora-shop' ); ?></a>
         <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-shipping&tab=rates' ) ); ?>" class="nav-tab <?php echo 'rates' === $tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Tarifs', 'flora-shop' ); ?></a>
     </h2>
 
+    <?php /* ================= Onglet Wilayas ================= */ ?>
     <?php if ( 'wilayas' === $tab ) : ?>
+        <?php /* --- Import des données officielles depuis le fichier SQL de référence --- */ ?>
         <div class="flora-card" style="background:#f0f6fc;border-left:4px solid #2271b1;">
             <h3 style="margin-top:0;"><?php esc_html_e( 'Importer les données officielles', 'flora-shop' ); ?></h3>
             <p><?php esc_html_e( 'Importe les 69 wilayas et 1541 communes depuis le fichier SQL de référence.', 'flora-shop' ); ?></p>
@@ -22,6 +27,7 @@
             </form>
         </div>
 
+        <?php /* --- Formulaire d'ajout / modification d'une wilaya --- */ ?>
         <div class="flora-card">
             <h3><?php esc_html_e( 'Ajouter / Modifier une Wilaya', 'flora-shop' ); ?></h3>
             <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
@@ -51,6 +57,7 @@
             </form>
         </div>
 
+        <?php /* --- Tableau des wilayas enregistrées --- */ ?>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -85,7 +92,9 @@
             </tbody>
         </table>
 
+    <?php /* ================= Onglet Communes ================= */ ?>
     <?php elseif ( 'communes' === $tab ) : ?>
+        <?php /* --- Formulaire d'ajout d'une commune --- */ ?>
         <div class="flora-card">
             <h3><?php esc_html_e( 'Ajouter une commune', 'flora-shop' ); ?></h3>
             <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
@@ -120,6 +129,7 @@
             </form>
         </div>
 
+        <?php /* --- Tableau des communes enregistrées --- */ ?>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -159,7 +169,9 @@
             </tbody>
         </table>
 
+    <?php /* ================= Onglet Tarifs ================= */ ?>
     <?php elseif ( 'rates' === $tab ) : ?>
+        <?php /* --- Formulaire d'ajout / modification d'un tarif (wilaya, commune optionnelle, frais) --- */ ?>
         <div class="flora-card">
             <h3><?php esc_html_e( 'Ajouter / Modifier un tarif', 'flora-shop' ); ?></h3>
             <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
@@ -192,6 +204,7 @@
             </form>
         </div>
 
+        <?php /* --- Tableau des tarifs enregistrés --- */ ?>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -239,6 +252,7 @@
             </tbody>
         </table>
 
+        <?php /* --- Chargement AJAX des communes de la wilaya sélectionnée pour le formulaire de tarif --- */ ?>
         <script>
         jQuery(document).ready(function($) {
             $('#flora-rate-wilaya').on('change', function() {

@@ -1,4 +1,10 @@
+<!--
+    Fiche pack (shortcode [flora_product] avec le paramètre « flora_pack »).
+    Affiche l'image, le contenu du pack sous forme d'accordéon, les promotions
+    et le récapitulatif de prix. Le JSON #flora-recap-data alimente le calcul JS.
+-->
 <div class="flora-shop-wrap">
+    <!-- En-tête : retour à la boutique et lien vers le panier. -->
     <div class="flora-shop-header-actions">
         <a href="<?php echo esc_url( get_permalink( FLORA_SHOP_PAGE_ID ) ); ?>" class="flora-header-cart-link">
             <span class="dashicons dashicons-arrow-left-alt"></span> <?php esc_html_e( 'Retour à la boutique', 'flora-shop' ); ?>
@@ -9,6 +15,7 @@
     </div>
 
     <?php if ( $pack ) : ?>
+        <!-- Image du pack, avec placeholder et badge « PACK ». -->
         <div class="flora-product-detail flora-pack-detail" data-pack-id="<?php echo esc_attr( $pack->id ); ?>">
             <div class="flora-product-detail-image">
                 <?php if ( $pack->image_url ) : ?>
@@ -21,6 +28,7 @@
                 <span class="flora-badge-pack"><?php esc_html_e( 'PACK', 'flora-shop' ); ?></span>
             </div>
 
+            <!-- Informations : nom, prix et description du pack. -->
             <div class="flora-product-detail-info">
                 <h1><?php echo esc_html( $pack->name ); ?></h1>
                 <p class="flora-product-price"><?php echo esc_html( Flora_Helpers::format_price( $pack->pack_price ) ); ?></p>
@@ -31,6 +39,7 @@
                     </div>
                 <?php endif; ?>
 
+                <!-- Accordéon « Contenu du pack » : chaque produit du pack est dépliable (image, quantité et description). -->
                 <?php if ( ! empty( $pack_products ) ) : ?>
                     <h3 class="flora-pack-detail-title"><?php esc_html_e( 'Contenu du pack', 'flora-shop' ); ?></h3>
                     <div class="flora-pack-accordion">
@@ -70,6 +79,7 @@
                     </div>
                 <?php endif; ?>
 
+                <!-- Promotions actives appliquées à ce pack (configurées en back-office). -->
                 <?php if ( ! empty( $pack_promotions ) ) : ?>
                     <h3 class="flora-pack-detail-title flora-pack-promo-title"><?php esc_html_e( 'Promotions', 'flora-shop' ); ?></h3>
                     <ul class="flora-pack-promotions">
@@ -82,6 +92,7 @@
                     </ul>
                 <?php endif; ?>
 
+                <!-- Récapitulatif des prix : contrôle de quantité, ajout du pack au panier puis tableau des prix (recalculé en JS). -->
                 <div class="flora-pack-recap" id="flora-recap">
                     <h3 class="flora-pack-detail-title"><?php esc_html_e( 'Récapitulatif des prix', 'flora-shop' ); ?></h3>
 
@@ -118,6 +129,7 @@
             </div>
         </div>
 
+        <!-- Données JSON de calcul (prix unitaire + config des promotions) consommées par cart.js pour la mise à jour du récapitulatif. -->
         <script type="application/json" id="flora-recap-data"><?php echo wp_json_encode( array(
             'unit_price' => (float) $pack->pack_price,
             'promotions' => $promo_config,

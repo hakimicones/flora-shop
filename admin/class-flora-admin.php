@@ -3,9 +3,18 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Classe principale de l'administration : enregistre les menus et les pages
+ * admin du plugin (tableau de bord, produits, packs, promotions, transport,
+ * commandes, paramètres), charge les classes filles, gère l'import des wilayas
+ * depuis l'interface, et affiche les notifications de retour (success/erreur).
+ * Contrôle d'accès par capability 'manage_options' ; nonce vérifié via
+ * Flora_Helpers::verify_nonce() pour les traitements POST.
+ */
 class Flora_Admin {
 
     public function __construct() {
+        // Initialise les hooks admin et charge les classes des pages admin filles.
         add_action( 'admin_menu', array( $this, 'register_menus' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'admin_notices', array( $this, 'show_notices' ) );
@@ -21,16 +30,21 @@ class Flora_Admin {
     }
 
     public static function handle_import() {
+        // Point d'entrée (init) de l'import SQL des wilayas/communes déclenché depuis la page Transport.
+        // Vérifie la capability avant toute action.
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
 
+        // Attend une action POST dédiée à l'import ; sinon on n'entre pas dans le traitement.
         if ( ! isset( $_POST['flora_action'] ) || 'import_wilayas' !== $_POST['flora_action'] ) { // phpcs:ignore WordPress.Security.NonceVerification
             return;
         }
 
+        // Vérification du nonce qui protège le formulaire d'import.
         Flora_Helpers::verify_nonce( 'flora_import_wilayas' );
 
+        // Assainit le chemin du fichier SQL transmis via POST avant de le passer à l'importer.
         $sql_file = isset( $_POST['sql_file_path'] ) ? sanitize_text_field( wp_unslash( $_POST['sql_file_path'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
         $result   = Flora_Importer::run( $sql_file );
 
@@ -44,6 +58,7 @@ class Flora_Admin {
     }
 
     public function register_menus() {
+        // Enregistre le menu principal et les sous-menus admin (tous protégés par 'manage_options').
         add_menu_page(
             __( 'Flora Shop', 'flora-shop' ),
             __( 'Flora Shop', 'flora-shop' ),
@@ -119,6 +134,7 @@ class Flora_Admin {
     }
 
     public function enqueue_assets( $hook ) {
+        // Charge les assets CSS/JS (et la médiathèque) uniquement sur les écrans d'admin du plugin.
         if ( strpos( $hook, 'flora-' ) === false ) {
             return;
         }
@@ -135,7 +151,9 @@ class Flora_Admin {
     }
 
     public function show_notices() {
+        // Affiche les messages de retour admin (succès/erreur) passés via le paramètre 'flora_notice' de l'URL.
         if ( isset( $_GET['flora_notice'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+            // Lecture en GET non fiable : on assainit la valeur avant de l'utiliser dans un switch.
             $notice = sanitize_text_field( wp_unslash( $_GET['flora_notice'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
             $message = '';
             $type    = 'success';

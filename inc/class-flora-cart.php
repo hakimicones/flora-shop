@@ -3,10 +3,18 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Moteur du panier basé sur un cookie.
+ *
+ * Gère le panier en cookie (ajout, suppression, quantités),
+ * le moteur de promotions BXGY, le recalcul des totaux
+ * et l'encodage JSON pour l'API REST.
+ */
 class Flora_Cart {
 
     private static $initialized = false;
 
+    // Initialisation en mode singleton : protège contre les double appels.
     public static function init() {
         if ( self::$initialized ) {
             return;
@@ -14,10 +22,12 @@ class Flora_Cart {
         self::$initialized = true;
     }
 
+    // Retourne le nom du cookie utilisé pour le stockage du panier.
     private static function cart_cookie_name() {
         return 'flora_cart';
     }
 
+    // Charge le panier depuis le cookie (ou la session legacy) et retourne le tableau du panier.
     private static function ensure_cart() {
         $cart = self::read_cookie_cart();
 
@@ -42,6 +52,7 @@ class Flora_Cart {
         return $cart;
     }
 
+    // Lit le cookie du panier, décode le base64 puis le JSON ; retourne le tableau du panier ou null.
     private static function read_cookie_cart() {
         if ( empty( $_COOKIE[ self::cart_cookie_name() ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification, WordPress.VIP.SuperGlobalInputUsage
             return null;
@@ -65,6 +76,7 @@ class Flora_Cart {
         return $cart;
     }
 
+    // Migre un éventuel panier depuis $_SESSION vers le cookie et retourne le tableau du panier ou null.
     private static function migrate_legacy_session() {
         if ( ! isset( $_SESSION['flora_cart'] ) || ! is_array( $_SESSION['flora_cart'] ) ) { // phpcs:ignore WordPress.VIP.SuperGlobalInputUsage
             return null;
@@ -88,6 +100,7 @@ class Flora_Cart {
         return $cart;
     }
 
+    // Encode le panier en JSON/base64 et le persiste dans un cookie (30 jours).
     private static function save_cart( $cart ) {
         $json = wp_json_encode( $cart );
 
@@ -121,11 +134,13 @@ class Flora_Cart {
         }
     }
 
+    // Retourne la liste brute des éléments du panier.
     public static function get_items() {
         $cart = self::ensure_cart();
         return $cart['items'];
     }
 
+    // Retourne la quantité totale d'articles payants (exclut free_item et free_pack).
     public static function get_count() {
         $cart  = self::ensure_cart();
         $count = 0;
@@ -137,6 +152,7 @@ class Flora_Cart {
         return $count;
     }
 
+    // Ajoute un article au panier (ou incrémente la quantité si déjà présent) et recalcule le total.
     public static function add_item( $type, $id, $quantity = 1 ) {
         $cart = self::ensure_cart();
 
@@ -158,6 +174,7 @@ class Flora_Cart {
         return $cart;
     }
 
+    // Met à jour la quantité d'un article par son index ; supprime si quantité <= 0, puis recalcule.
     public static function update_quantity( $index, $quantity ) {
         $cart = self::ensure_cart();
 
@@ -178,6 +195,7 @@ class Flora_Cart {
         return $cart;
     }
 
+    // Supprime un article du panier par son index et recalcule le total.
     public static function remove_item( $index ) {
         $cart = self::ensure_cart();
 
@@ -194,6 +212,7 @@ class Flora_Cart {
         return $cart;
     }
 
+    // Définit la wilaya et la commune du panier, puis recalcule les totaux (frais de livraison).
     public static function set_location( $wilaya_code, $commune_id = 0 ) {
         $cart = self::ensure_cart();
         $cart['wilaya_code'] = absint( $wilaya_code );
@@ -203,6 +222,7 @@ class Flora_Cart {
         return $cart;
     }
 
+    // Réinitialise le panier et supprime le cookie côté client.
     public static function clear() {
         $empty_cart = array(
             'items'       => array(),
@@ -217,6 +237,7 @@ class Flora_Cart {
         setcookie( self::cart_cookie_name(), '', time() - 3600, $path );
     }
 
+    // Retourne les totaux du panier (sous-total, remises, livraison, total, poids) ou les recalcule si absents.
     public static function get_totals() {
         $cart = self::ensure_cart();
         if ( empty( $cart['totals'] ) ) {
@@ -232,6 +253,7 @@ class Flora_Cart {
         );
     }
 
+    // Recherche l'index d'un article payant dans le panier par type et id ; retourne l'index ou false.
     private static function find_item_index( $type, $id ) {
         $cart = self::ensure_cart();
         foreach ( $cart['items'] as $index => $item ) {
@@ -242,6 +264,7 @@ class Flora_Cart {
         return false;
     }
 
+    // Supprime tous les articles gratuits (free_item, free_pack) du panier avant recalcul.
     private static function remove_free_items() {
         $cart = self::ensure_cart();
         $new_items = array();
@@ -254,6 +277,7 @@ class Flora_Cart {
         self::save_cart( $cart );
     }
 
+    // Recalcule l'ensemble des totaux du panier : sous-total, poids, promotions, remises, livraison.
     private static function recalculate() {
         $db   = Flora_DB::get_instance();
         $cart = self::ensure_cart();
@@ -333,6 +357,7 @@ class Flora_Cart {
         self::save_cart( $cart );
     }
 
+    // Applique les promotions BXGY actives au panier et retourne le tableau des remises promotionnelles.
     private static function apply_promotions( &$cart, $product_counts ) {
         $db             = Flora_DB::get_instance();
         $promotions     = $db->get_promotions( true );
@@ -353,8 +378,10 @@ class Flora_Cart {
                 continue;
             }
 
+            // Nombre de lots éligibles = quantité totale / quantité déclencheur (entier inférieur).
             $times = (int) floor( $product_counts[ $trigger_key ] / $trigger_qty );
 
+            // Plafonnement : la promo ne peut pas s'appliquer plus de limit_per_order fois par commande.
             if ( $limit > 0 && $times > $limit ) {
                 $times = $limit;
             }
@@ -366,6 +393,7 @@ class Flora_Cart {
             $trigger_name = self::resolve_item_name( $trigger_type, $promo->trigger_product_id );
 
             if ( 'percent' === $reward_type ) {
+                // Branche remise pourcentage : applique discount_percent sur le prix total des articles déclencheurs.
                 $percent = (float) $promo->discount_percent;
 
                 if ( $percent <= 0 ) {
@@ -389,6 +417,7 @@ class Flora_Cart {
             }
 
             if ( 'amount' === $reward_type ) {
+                // Branche remise montant fixe : applique discount_amount par lot, plafonné au prix réel des articles déclencheurs.
                 $discount_per_set = (float) $promo->discount_amount;
 
                 if ( $discount_per_set <= 0 ) {
@@ -421,17 +450,12 @@ class Flora_Cart {
             }
 
             $free_item_type = 'pack' === $free_type ? 'free_pack' : 'free_item';
-            $total_free     = $times * $free_qty;
-            $already_free   = 0;
-            $free_promo     = sprintf( __( 'Achetez %d × %s et recevez %d × %s offert(s)', 'flora-shop' ), $trigger_qty, $trigger_name, $total_free, self::resolve_item_name( $free_type, $free_id ) );
-
-            foreach ( $cart['items'] as $item ) {
-                if ( $item['type'] === $free_item_type && $item['id'] === $free_id ) {
-                    $already_free = $item['quantity'];
-                }
-            }
+            // Quantité totale gratuite à offrir = nombre de lots * quantité gratuite par lot. Toujours >= 1 (times et free_qty sont validés plus haut).
+            $total_free = $times * $free_qty;
+            $free_promo = sprintf( __( 'Achetez %d × %s et recevez %d × %s offert(s)', 'flora-shop' ), $trigger_qty, $trigger_name, $total_free, self::resolve_item_name( $free_type, $free_id ) );
 
             $found = false;
+            // Mise à jour de l'article gratuit existant dans le panier ou ajout si absent.
             for ( $i = 0; $i < count( $cart['items'] ); $i++ ) {
                 if ( $cart['items'][ $i ]['type'] === $free_item_type && $cart['items'][ $i ]['id'] === $free_id ) {
                     $cart['items'][ $i ]['quantity']    = $total_free;
@@ -451,21 +475,12 @@ class Flora_Cart {
                     'promo_label' => $free_promo,
                 );
             }
-
-            if ( $total_free <= 0 ) {
-                foreach ( $cart['items'] as $i => $item ) {
-                    if ( $item['type'] === $free_item_type && $item['id'] === $free_id ) {
-                        unset( $cart['items'][ $i ] );
-                        $cart['items'] = array_values( $cart['items'] );
-                        break;
-                    }
-                }
-            }
         }
 
         return $promo_discounts;
     }
 
+    // Résolution du nom d'un article (produit ou pack) à partir de la base de données.
     private static function resolve_item_name( $type, $id ) {
         $db = Flora_DB::get_instance();
 
@@ -478,6 +493,7 @@ class Flora_Cart {
         return $product ? $product->name : __( 'Produit', 'flora-shop' );
     }
 
+    // Résolution du prix unitaire d'un article (produit ou pack) ; retourne un float ou 0.
     private static function resolve_item_price( $type, $id ) {
         $db = Flora_DB::get_instance();
 
@@ -490,6 +506,7 @@ class Flora_Cart {
         return $product ? (float) $product->price : 0;
     }
 
+    // Calcule les remises classiques (remises par produit et remises par montant du panier) et retourne le total.
     private static function calculate_discounts( $cart, $subtotal, $product_counts ) {
         $discount_total = 0;
 
@@ -525,6 +542,7 @@ class Flora_Cart {
         return $discount_total;
     }
 
+    // Calcule les frais de livraison (gratuit si seuil atteint, sinon base + poids) ; retourne le montant.
     private static function calculate_shipping( $cart, $total_weight ) {
         $free_threshold = (float) get_option( 'flora_free_shipping_threshold', 0 );
 
@@ -550,6 +568,7 @@ class Flora_Cart {
         return $fee;
     }
 
+    // Traite la validation de commande : crée la commande en base, insère les lignes, décrémente le stock, vide le panier.
     public static function process_checkout( $billing_data ) {
         $db   = Flora_DB::get_instance();
         $cart = self::ensure_cart();
@@ -644,11 +663,13 @@ class Flora_Cart {
         );
     }
 
+    // Génère le tableau structuré du panier au format JSON pour l'API REST (articles, totaux, promotions).
     public static function get_cart_json() {
         $db     = Flora_DB::get_instance();
         $cart   = self::ensure_cart();
         $totals = self::get_totals();
 
+        // Construction du tableau des articles au format attendu par l'API (index, type, id, quantité, prix, ligne totale, image).
         $items = array();
         foreach ( $cart['items'] as $index => $item ) {
             $data = array(
@@ -688,6 +709,7 @@ class Flora_Cart {
             $items[] = $data;
         }
 
+        // Construction du tableau des promotions : remises calculées + articles gratuits ajoutés par BXGY.
         $promotions = array();
         if ( ! empty( $cart['promo_discounts'] ) && is_array( $cart['promo_discounts'] ) ) {
             $promotions = $cart['promo_discounts'];

@@ -1,5 +1,11 @@
+<!--
+    Confirmation de commande (shortcode [flora_order_confirm]).
+    Affiche le récapitulatif de la commande passée (numéro, coordonnées, totaux,
+    statut) à partir de l'objet $order, ou un message d'erreur si introuvable.
+-->
 <div class="flora-shop-wrap flora-confirm-wrap">
     <?php if ( $order ) : ?>
+        <!-- Bloc de succès : icône, titre et numéro de commande. -->
         <div class="flora-confirm-success">
             <span class="dashicons dashicons-yes-alt"></span>
             <h2><?php esc_html_e( 'Commande confirmée !', 'flora-shop' ); ?></h2>
@@ -14,6 +20,7 @@
             </p>
         </div>
 
+        <!-- Coordonnées du client enregistrées avec la commande. -->
         <div class="flora-confirm-details">
             <div class="flora-confirm-card">
                 <h3><?php esc_html_e( 'Détails de la commande', 'flora-shop' ); ?></h3>
@@ -24,6 +31,7 @@
                 </table>
             </div>
 
+            <!-- Totaux : sous-total, remises éventuelles, transport et total final. -->
             <div class="flora-confirm-card">
                 <h3><?php esc_html_e( 'Récapitulatif', 'flora-shop' ); ?></h3>
                 <table class="flora-confirm-table">
@@ -37,6 +45,7 @@
             </div>
         </div>
 
+        <!-- Statut de la commande et note sur l'email de confirmation. -->
         <div class="flora-confirm-status">
             <p>
                 <?php
@@ -50,6 +59,7 @@
         </div>
 
     <?php else : ?>
+        <!-- Bloc d'erreur : le numéro de commande fourni n'a pas été trouvé. -->
         <div class="flora-confirm-error">
             <h2><?php esc_html_e( 'Commande introuvable', 'flora-shop' ); ?></h2>
             <p><?php esc_html_e( 'Nous n\'avons pas pu trouver cette commande. Veuillez vérifier le numéro de commande.', 'flora-shop' ); ?></p>

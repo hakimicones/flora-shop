@@ -1,6 +1,9 @@
+<?php /* Vue du formulaire d'ajout / modification d'un produit : champs d'information et actions d'enregistrement. */ ?>
+
 <div class="wrap flora-admin">
     <h1><?php echo $product ? esc_html__( 'Modifier le produit', 'flora-shop' ) : esc_html__( 'Ajouter un produit', 'flora-shop' ); ?></h1>
 
+    <?php /* --- Formulaire d'enregistrement : l'action "save" est traitée côté serveur --- */ ?>
     <form method="post" action="">
         <?php Flora_Helpers::wpnonce_field( 'flora_save_product' ); ?>
         <input type="hidden" name="flora_action" value="save">
@@ -8,6 +11,7 @@
             <input type="hidden" name="product_id" value="<?php echo esc_attr( $product->id ); ?>">
         <?php endif; ?>
 
+        <?php /* --- Champs du produit (nom, description, prix, poids, image, stock, tri, statut) --- */ ?>
         <table class="form-table">
             <tr>
                 <th><label for="name"><?php esc_html_e( 'Nom du produit', 'flora-shop' ); ?> *</label></th>
@@ -51,6 +55,7 @@
             </tr>
         </table>
 
+        <?php /* --- Boutons d'enregistrement et de retour à la liste --- */ ?>
         <p class="submit">
             <button type="submit" class="button button-primary"><?php esc_html_e( 'Enregistrer le produit', 'flora-shop' ); ?></button>
             <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-products' ) ); ?>" class="button"><?php esc_html_e( 'Annuler', 'flora-shop' ); ?></a>

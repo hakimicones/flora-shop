@@ -3,9 +3,16 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Page admin « Tableau de bord » : agrège les indicateurs clés (commandes,
+ * revenus, produits les plus vendus, dernières commandes) et prépare les séries
+ * de données pour le graphique des 30 derniers jours. Accès restreint à la
+ * capability 'manage_options' ; aucune écriture POST ici, la page est en lecture.
+ */
 class Flora_Admin_Dashboard {
 
     public static function render() {
+        // Point d'entrée de la page : vérifie la permission puis prépare et affiche le tableau de bord.
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Accès non autorisé.', 'flora-shop' ) );
         }
@@ -20,6 +27,8 @@ class Flora_Admin_Dashboard {
         $recent_orders   = $db->get_orders( array( 'limit' => 10 ) );
         $chart_data      = $db->get_orders_by_date( 30 );
 
+        // Construction des séries pour le graphique : on aligne les données
+        // réelles sur une plage continue des 30 derniers jours (0 si aucun résultat).
         $chart_labels = array();
         $chart_revenue = array();
         $chart_orders = array();

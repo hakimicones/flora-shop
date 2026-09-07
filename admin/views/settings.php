@@ -1,10 +1,14 @@
+<?php /* Vue des paramètres du plugin : devise, seuil de livraison gratuite et règles de remises sur produits / panier. */ ?>
+
 <div class="wrap flora-admin">
     <h1><?php esc_html_e( 'Paramètres Flora Shop', 'flora-shop' ); ?></h1>
 
+    <?php /* --- Formulaire général de sauvegarde des paramètres --- */ ?>
     <form method="post" action="">
         <?php Flora_Helpers::wpnonce_field( 'flora_save_settings' ); ?>
         <input type="hidden" name="flora_action" value="save_settings">
 
+        <?php /* --- Réglages généraux : devise et seuil de livraison gratuite --- */ ?>
         <h2><?php esc_html_e( 'Général', 'flora-shop' ); ?></h2>
         <table class="form-table">
             <tr>
@@ -20,6 +24,7 @@
             </tr>
         </table>
 
+        <?php /* --- Règles de remise par produit (tableau de lignes dynamiques) --- */ ?>
         <h2><?php esc_html_e( 'Remises sur produits', 'flora-shop' ); ?></h2>
         <p class="description"><?php esc_html_e( 'Appliquer un pourcentage de remise sur un produit spécifique si la quantité est supérieure ou égale au seuil.', 'flora-shop' ); ?></p>
         <table class="wp-list-table widefat fixed striped" id="flora-product-discounts">
@@ -53,6 +58,7 @@
         </table>
         <p><button type="button" class="button" id="flora-add-product-discount"><?php esc_html_e( '+ Ajouter une règle', 'flora-shop' ); ?></button></p>
 
+        <?php /* --- Règles de remise sur panier (tableau de lignes dynamiques) --- */ ?>
         <h2><?php esc_html_e( 'Remises sur panier', 'flora-shop' ); ?></h2>
         <p class="description"><?php esc_html_e( 'Appliquer un pourcentage de remise sur le sous-total du panier si le montant atteint un seuil.', 'flora-shop' ); ?></p>
         <table class="wp-list-table widefat fixed striped" id="flora-cart-discounts">

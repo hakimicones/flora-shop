@@ -1,6 +1,9 @@
+<?php /* Vue du formulaire d'ajout / modification d'une promotion : déclencheur, récompense et conditions d'application. */ ?>
+
 <div class="wrap flora-admin">
     <h1><?php echo $promo ? esc_html__( 'Modifier la promotion', 'flora-shop' ) : esc_html__( 'Ajouter une promotion', 'flora-shop' ); ?></h1>
 
+    <?php /* --- Formulaire principal de la promotion (action "save") --- */ ?>
     <form method="post" action="">
         <?php Flora_Helpers::wpnonce_field( 'flora_save_promo' ); ?>
         <input type="hidden" name="flora_action" value="save">
@@ -13,6 +16,7 @@
         $reward_type  = $promo ? $promo->reward_type : 'free';
         ?>
 
+        <?php /* --- Section déclencheur : produit ou pack qui déclenche la promotion, et quantité requise --- */ ?>
         <table class="form-table">
             <tr>
                 <th><label for="trigger_type"><?php esc_html_e( 'Type de déclencheur', 'flora-shop' ); ?> *</label></th>
@@ -49,6 +53,7 @@
                 <th><label for="trigger_qty"><?php esc_html_e( 'Quantité déclenchante', 'flora-shop' ); ?> *</label></th>
                 <td><input type="number" id="trigger_qty" name="trigger_qty" class="small-text" min="1" required value="<?php echo $promo ? esc_attr( $promo->trigger_qty ) : '3'; ?>"></td>
             </tr>
+            <?php /* --- Section récompense : article gratuit, réduction en % ou en montant (lignes affichées selon le type) --- */ ?>
             <tr>
                 <th><label for="reward_type"><?php esc_html_e( 'Type de récompense', 'flora-shop' ); ?> *</label></th>
                 <td>
@@ -145,6 +150,13 @@
     </form>
 </div>
 
+<?php
+/*
+ * floraPromoToggle() affiche la ligne de formulaire correspondant au type de déclencheur et de récompense choisi,
+ * et désactive les champs des lignes masquées pour éviter les erreurs HTML5 "not focusable".
+ * Les champs désactivés ne sont pas envoyés au serveur : la sauvegarde doit donc vérifier chaque clé avec isset().
+ */
+?>
 <script type="text/javascript">
 (function($) {
     function floraPromoToggle() {

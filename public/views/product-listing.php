@@ -1,4 +1,10 @@
+<!--
+    Grille de la boutique (shortcode [flora_products]).
+    Affiche les produits puis les packs sous forme de cartes : image, nom,
+    prix, courte description, contenu (packs) et ajout direct au panier.
+-->
 <div class="flora-shop-wrap">
+    <!-- En-tête : titre de la section et lien vers le panier. -->
     <h2><?php esc_html_e( 'Nos Produits', 'flora-shop' ); ?></h2>
 
     <div class="flora-shop-header-actions">
@@ -7,6 +13,7 @@
         </a>
     </div>
 
+    <!-- Grille des produits : chaque carte pointe vers la fiche produit et permet l'ajout au panier. -->
     <?php if ( ! empty( $products ) ) : ?>
         <div class="flora-products-grid">
             <?php foreach ( $products as $p ) :
@@ -56,6 +63,7 @@
         <p><?php esc_html_e( 'Aucun produit disponible pour le moment.', 'flora-shop' ); ?></p>
     <?php endif; ?>
 
+    <!-- Grille des packs : la carte liste le contenu du pack et autorise l'ajout direct au panier. -->
     <?php if ( ! empty( $packs ) ) : ?>
         <h2 class="flora-section-title"><?php esc_html_e( 'Nos Packs', 'flora-shop' ); ?></h2>
         <div class="flora-products-grid">

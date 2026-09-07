@@ -3,18 +3,27 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Classe gérant l'activation, la désactivation et les migrations du plugin.
+ *
+ * Crée les tables de la base de données, définit les options par défaut
+ * et applique les migrations de schéma lors des mises à jour de version.
+ */
 class Flora_Activator {
 
+    // Hook d'activation : crée les tables, les options par défaut et rafraîchit les règles de réécriture.
     public static function activate() {
         self::create_tables();
         self::set_default_options();
         flush_rewrite_rules();
     }
 
+    // Hook de désactivation : rafraîchit les règles de réécriture.
     public static function deactivate() {
         flush_rewrite_rules();
     }
 
+    // Insère les options par défaut (devise, seuil livraison gratuite, remises).
     private static function set_default_options() {
         add_option( 'flora_shop_version', FLORA_SHOP_VERSION );
         add_option( 'flora_currency', 'DZD' );
@@ -23,6 +32,7 @@ class Flora_Activator {
         add_option( 'flora_cart_discounts', array() );
     }
 
+    // Crée ou met à jour toutes les tables du plugin via dbDelta, puis lance les migrations de colonnes.
     private static function create_tables() {
         global $wpdb;
         $charset = $wpdb->get_charset_collate();
@@ -174,6 +184,7 @@ class Flora_Activator {
         self::migrate_promotions_columns();
     }
 
+    // Vérifie si une mise à jour de version est nécessaire et relance la création des tables.
     public static function maybe_upgrade() {
         $installed = (string) get_option( 'flora_shop_version', '0' );
 
@@ -183,6 +194,7 @@ class Flora_Activator {
         }
     }
 
+    // Recrée la table wilayas si elle est absente ou corrompue, et migre les colonnes wilaya_id → wilaya_code.
     private static function migrate_wilayas_table() {
         global $wpdb;
         $table = $wpdb->prefix . 'flora_wilayas';
@@ -213,6 +225,7 @@ class Flora_Activator {
         }
     }
 
+    // Ajoute les colonnes manquantes à la table communes (post_code, name_ar, daira, coordonnées, wilaya_code).
     private static function migrate_communes_columns() {
         global $wpdb;
         $table = $wpdb->prefix . 'flora_communes';
@@ -235,6 +248,7 @@ class Flora_Activator {
         }
     }
 
+    // Remplace la colonne wilaya_id par wilaya_code dans la table des frais de livraison.
     private static function migrate_shipping_rates_columns() {
         global $wpdb;
         $table = $wpdb->prefix . 'flora_shipping_rates';
@@ -247,6 +261,7 @@ class Flora_Activator {
         }
     }
 
+    // Remplace la colonne wilaya_id par wilaya_code dans la table des commandes.
     private static function migrate_orders_columns() {
         global $wpdb;
         $table = $wpdb->prefix . 'flora_orders';
@@ -259,6 +274,7 @@ class Flora_Activator {
         }
     }
 
+    // Ajoute les colonnes manquantes à la table promotions (trigger_type, reward_type, free_type, remises).
     private static function migrate_promotions_columns() {
         global $wpdb;
         $table   = $wpdb->prefix . 'flora_promotions';

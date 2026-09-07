@@ -3,8 +3,17 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Classe publique de flora-shop.
+ *
+ * Enregistre les shortcodes front-end du plugin (boutique, fiche produit/pack,
+ * panier, checkout, confirmation) ainsi que les assets CSS/JS associés.
+ * Les données localisées (URLs des pages, endpoint REST, nonce « wp_rest »
+ * et traductions) sont transmises au script cart.js via wp_localize_script().
+ */
 class Flora_Public {
 
+    // Enregistre les shortcodes et l'action d'ajout des assets front-end.
     public function __construct() {
         add_shortcode( 'flora_products', array( $this, 'shortcode_products' ) );
         add_shortcode( 'flora_product', array( $this, 'shortcode_product' ) );
@@ -15,8 +24,10 @@ class Flora_Public {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
     }
 
+    // enqueue_assets : charge CSS/JS uniquement sur les pages contenant un shortcode du plugin, puis localise la config (URLs, nonce, traductions) pour cart.js.
     public function enqueue_assets() {
-        if ( ! is_page() && ! is_short_code() ) {
+        // Les pages Flora sont toujours couvertes. Pour tout autre type de post, on vérifie la présence d'un shortcode du plugin.
+        if ( ! is_page() ) {
             global $post;
             if ( ! is_a( $post, 'WP_Post' ) || ! has_shortcode( $post->post_content, 'flora_products' ) && ! has_shortcode( $post->post_content, 'flora_product' ) && ! has_shortcode( $post->post_content, 'flora_cart' ) && ! has_shortcode( $post->post_content, 'flora_checkout' ) && ! has_shortcode( $post->post_content, 'flora_order_confirm' ) ) {
                 return;
@@ -49,6 +60,7 @@ class Flora_Public {
         ) );
     }
 
+    // shortcode_products : charge les produits et packs puis affiche la grille de la boutique (view product-listing).
     public function shortcode_products( $atts ) {
         $atts = shortcode_atts( array(
             'limit' => 12,
@@ -63,12 +75,15 @@ class Flora_Public {
         return ob_get_clean();
     }
 
+    // shortcode_product : bascule entre la fiche pack (paramètre « flora_pack ») et la fiche produit (paramètre « flora_product »),
+    // et construit la config promo (build_promo_config) pour alimenter le récapitulatif de prix.
     public function shortcode_product() {
         $db = Flora_DB::get_instance();
 
         $product_slug = isset( $_GET['flora_product'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_product'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
         $pack_slug    = isset( $_GET['flora_pack'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_pack'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 
+        // Branche « pack » : charge le pack, ses produits et ses promotions.
         if ( $pack_slug ) {
             $pack            = $db->get_pack_by_slug( $pack_slug );
             $pack_products   = array();
@@ -88,6 +103,7 @@ class Flora_Public {
             return ob_get_clean();
         }
 
+        // Branche « produit » : charge le produit et ses promotions.
         $product = null;
         if ( $product_slug ) {
             $product = $db->get_product_by_slug( $product_slug );
@@ -107,6 +123,8 @@ class Flora_Public {
         return ob_get_clean();
     }
 
+    // build_promo_config : transforme les promotions actives en configuration lisible par le récapitulatif
+    // (réductions en % ou en montant, ou produit/pack offert) pour le produit ou pack déclencheur donné.
     private static function build_promo_config( $promotions, $trigger_type, $trigger_id, $trigger_name ) {
         $db    = Flora_DB::get_instance();
         $config = array();
@@ -170,12 +188,14 @@ class Flora_Public {
         return $config;
     }
 
+    // shortcode_cart : affiche la page panier (contenu rendu dynamiquement par cart.js).
     public function shortcode_cart() {
         ob_start();
         include FLORA_SHOP_PATH . 'public/views/cart.php';
         return ob_get_clean();
     }
 
+    // shortcode_checkout : récupère les wilayas puis affiche le formulaire de commande (view checkout).
     public function shortcode_checkout() {
         $db      = Flora_DB::get_instance();
         $wilayas = $db->get_wilayas();
@@ -185,6 +205,7 @@ class Flora_Public {
         return ob_get_clean();
     }
 
+    // shortcode_order_confirm : charge la commande par son numéro (paramètre « order ») puis affiche la confirmation (view order-confirmation).
     public function shortcode_order_confirm() {
         $order_number = isset( $_GET['order'] ) ? sanitize_text_field( wp_unslash( $_GET['order'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
         $order = null;

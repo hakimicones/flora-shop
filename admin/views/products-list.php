@@ -1,3 +1,5 @@
+<?php /* Vue de la liste des produits : tableau avec image, prix, stock, statut et actions (modifier / supprimer). */ ?>
+
 <div class="wrap flora-admin">
     <h1 class="wp-heading-inline"><?php esc_html_e( 'Produits', 'flora-shop' ); ?></h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-products&action=add' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Ajouter un produit', 'flora-shop' ); ?></a>
@@ -16,6 +18,7 @@
             </tr>
         </thead>
         <tbody>
+            <?php /* --- Lignes du tableau : un produit par ligne --- */ ?>
             <?php if ( empty( $products ) ) : ?>
                 <tr><td colspan="7"><?php esc_html_e( 'Aucun produit trouvé.', 'flora-shop' ); ?></td></tr>
             <?php else : ?>
@@ -43,6 +46,7 @@
                                 <?php echo esc_html( ucfirst( $p->status ) ); ?>
                             </span>
                         </td>
+                        <?php /* --- Colonne actions : lien modifier + formulaire de suppression --- */ ?>
                         <td>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-products&action=edit&id=' . $p->id ) ); ?>"><?php esc_html_e( 'Modifier', 'flora-shop' ); ?></a> |
                             <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Supprimer ce produit ?', 'flora-shop' ); ?>');">

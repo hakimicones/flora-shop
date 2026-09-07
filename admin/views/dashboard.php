@@ -1,6 +1,9 @@
+<?php /* Vue principale du tableau de bord : statistiques globales, graphique de revenus, dernières commandes et produits les plus vendus. */ ?>
+
 <div class="wrap flora-admin">
     <h1><?php esc_html_e( 'Tableau de bord Flora Shop', 'flora-shop' ); ?></h1>
 
+    <?php /* --- Cartes de statistiques (revenus, commandes) --- */ ?>
     <div class="flora-stats-grid">
         <div class="flora-stat-card">
             <h3><?php esc_html_e( 'Revenu total', 'flora-shop' ); ?></h3>
@@ -20,13 +23,16 @@
         </div>
     </div>
 
+    <?php /* --- Colonne principale : graphique + tableau des dernières commandes --- */ ?>
     <div class="flora-dashboard-columns">
         <div class="flora-dashboard-main">
             <div class="flora-card">
+                <?php /* Graphique Chart.js affichant les revenus sur 30 jours */ ?>
                 <h2><?php esc_html_e( 'Revenus des 30 derniers jours', 'flora-shop' ); ?></h2>
                 <canvas id="flora-revenue-chart" height="300"></canvas>
             </div>
 
+        <?php /* --- Tableau des dernières commandes récentes --- */ ?>
             <div class="flora-card">
                 <h2><?php esc_html_e( 'Dernières commandes', 'flora-shop' ); ?></h2>
                 <table class="wp-list-table widefat fixed striped">
@@ -58,6 +64,7 @@
             </div>
         </div>
 
+        <?php /* --- Colonne latérale : produits les plus vendus --- */ ?>
         <div class="flora-dashboard-sidebar">
             <div class="flora-card">
                 <h2><?php esc_html_e( 'Produits les plus vendus', 'flora-shop' ); ?></h2>
@@ -78,6 +85,7 @@
         </div>
     </div>
 
+    <?php /* --- Script Chart.js pour le graphique de revenus --- */ ?>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {

@@ -1,6 +1,9 @@
+<?php /* Vue du formulaire d'ajout / modification d'un pack : infos du pack plus gestion des produits associés. */ ?>
+
 <div class="wrap flora-admin">
     <h1><?php echo $pack ? esc_html__( 'Modifier le pack', 'flora-shop' ) : esc_html__( 'Ajouter un pack', 'flora-shop' ); ?></h1>
 
+    <?php /* --- Formulaire principal du pack (action "save") --- */ ?>
     <form method="post" action="">
         <?php Flora_Helpers::wpnonce_field( 'flora_save_pack' ); ?>
         <input type="hidden" name="flora_action" value="save">
@@ -8,6 +11,7 @@
             <input type="hidden" name="pack_id" value="<?php echo esc_attr( $pack->id ); ?>">
         <?php endif; ?>
 
+        <?php /* --- Champs du pack (nom, description, prix, image, tri, statut) --- */ ?>
         <table class="form-table">
             <tr>
                 <th><label for="name"><?php esc_html_e( 'Nom du pack', 'flora-shop' ); ?> *</label></th>
@@ -43,6 +47,7 @@
             </tr>
         </table>
 
+        <?php /* --- Table des produits contenus dans le pack (lignes dynamiques) --- */ ?>
         <h2><?php esc_html_e( 'Produits dans ce pack', 'flora-shop' ); ?></h2>
         <table class="wp-list-table widefat fixed striped" id="flora-pack-products">
             <thead>
@@ -81,6 +86,7 @@
         </p>
     </form>
 
+    <?php /* --- Modèle HTML d'une nouvelle ligne, cloné par JS au clic sur "Ajouter un produit" --- */ ?>
     <script type="text/html" id="flora-pack-product-template">
         <tr class="flora-pack-product-row">
             <td>

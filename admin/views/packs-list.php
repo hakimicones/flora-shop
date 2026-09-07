@@ -1,3 +1,5 @@
+<?php /* Vue de la liste des packs : tableau avec image, prix, nombre de produits, statut et actions. */ ?>
+
 <div class="wrap flora-admin">
     <h1 class="wp-heading-inline"><?php esc_html_e( 'Packs', 'flora-shop' ); ?></h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-packs&action=add' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Ajouter un pack', 'flora-shop' ); ?></a>
@@ -16,6 +18,7 @@
             </tr>
         </thead>
         <tbody>
+            <?php /* --- Lignes du tableau : un pack par ligne, avec comptage des produits associés --- */ ?>
             <?php if ( empty( $packs ) ) : ?>
                 <tr><td colspan="7"><?php esc_html_e( 'Aucun pack trouvé.', 'flora-shop' ); ?></td></tr>
             <?php else : ?>
@@ -41,6 +44,7 @@
                                 <?php echo esc_html( ucfirst( $pk->status ) ); ?>
                             </span>
                         </td>
+                        <?php /* --- Colonne actions : lien modifier + formulaire de suppression --- */ ?>
                         <td>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-packs&action=edit&id=' . $pk->id ) ); ?>"><?php esc_html_e( 'Modifier', 'flora-shop' ); ?></a> |
                             <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Supprimer ce pack ?', 'flora-shop' ); ?>');">

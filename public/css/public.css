@@ -1139,6 +1139,34 @@ body.flora-drawer-open {
     text-align: center;
 }
 
+
+.flora-input {
+    border: 1px solid #ccd0d4 !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+}
+
+.flora-shipping-methods { 
+    display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+.flora-shipping-method   {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-left: 4px solid #2271b1;
+    padding: 20px;
+    text-align: center;
+}
+
+.flora-shipping-method input {
+    height: 24px !important;
+    width: 50px;
+}
+.memo {
+    display: block !important;
+}
 @media screen and (max-width: 480px) {
     #flora-cart-drawer {
         width: 100%;

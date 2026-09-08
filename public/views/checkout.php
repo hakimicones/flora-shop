@@ -21,10 +21,10 @@
                                 <?php if ( ! Flora_Helpers::is_method_enabled( $skey ) ) { continue; } ?>
                                 <label class="flora-shipping-method">
                                     <input type="radio" name="shipping_method" value="<?php echo esc_attr( $skey ); ?>" <?php checked( 'home' === $skey ); ?>>
-                                    <span>
+                                    <span >
                                         <strong><?php echo esc_html( $scfg['label'] ); ?></strong>
                                         <?php if ( ! empty( $scfg['description'] ) ) : ?>
-                                            <small><?php echo esc_html( $scfg['description'] ); ?></small>
+                                            <small class="memo"><?php echo esc_html( $scfg['description'] ); ?></small>
                                         <?php endif; ?>
                                     </span>
                                 </label>
@@ -36,28 +36,33 @@
                 <!-- Identité du client : nom complet, email et téléphone (champs requis). -->
                 <div class="flora-form-row">
                     <div class="flora-form-field">
-                        <label for="full_name"><?php esc_html_e( 'Nom complet', 'flora-shop' ); ?> *</label>
-                        <input type="text" id="full_name" name="full_name" required autocomplete="name">
+                        
+                        <input type="text"  class="flora-input" id="full_name" placeholder="<?php esc_html_e( 'Nom complet', 'flora-shop' ); ?> *" name="full_name" required autocomplete="name">
                     </div>
                 </div>
 
-                <div class="flora-form-row flora-form-col-2">
+                <?php $class=  ( get_option( 'flora_show_order_email', 1 ) ) ? 'flora-form-col-2' : ''; ?>
+                    
+                    
+                    
+                    
+                   
+
+                <div class="flora-form-row <?php echo $class; ?>">
                     <?php if ( get_option( 'flora_show_order_email', 1 ) ) : ?>
                         <div class="flora-form-field">
-                            <label for="email"><?php esc_html_e( 'Email', 'flora-shop' ); ?> *</label>
-                            <input type="email" id="email" name="email" required>
+                            
+                            <input class="flora-input" type="email" id="email" placeholder="<?php esc_html_e( 'Email', 'flora-shop' ); ?> *" name="email" required>
                         </div>
                     <?php endif; ?>
                     <div class="flora-form-field">
-                        <label for="phone"><?php esc_html_e( 'Téléphone', 'flora-shop' ); ?> *</label>
-                        <input type="tel" id="phone" name="phone" required>
+                        <input class="flora-input" type="tel" id="phone" placeholder="<?php esc_html_e( 'Téléphone', 'flora-shop' ); ?> *" name="phone" required>
                     </div>
                 </div>
 
                 <div class="flora-form-row" id="flora-address-row">
                     <div class="flora-form-field">
-                        <label for="address"><?php esc_html_e( 'Adresse', 'flora-shop' ); ?> *</label>
-                        <textarea id="address" name="address" rows="2" required></textarea>
+                        <textarea id="address" name="address" placeholder="<?php esc_html_e( 'Adresse', 'flora-shop' ); ?> *" rows="2" required></textarea>
                     </div>
                 </div>
 

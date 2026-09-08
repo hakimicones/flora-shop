@@ -52,13 +52,14 @@
         <?php /* --- Import des données officielles depuis le fichier SQL de référence --- */ ?>
         <div class="flora-card" style="background:#f0f6fc;border-left:4px solid #2271b1;">
             <h3 style="margin-top:0;"><?php esc_html_e( 'Importer les données officielles', 'flora-shop' ); ?></h3>
-            <p><?php esc_html_e( 'Importe les 69 wilayas et 1541 communes depuis le fichier SQL de référence.', 'flora-shop' ); ?></p>
+            <p><?php esc_html_e( 'Importe les 69 wilayas et 1541 communes depuis le fichier SQL fourni avec le plugin (bouton « Importer » pour reprendre le chemin par défaut).', 'flora-shop' ); ?></p>
             <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
                 <?php Flora_Helpers::wpnonce_field( 'flora_import_wilayas' ); ?>
                 <input type="hidden" name="flora_action" value="import_wilayas">
                 <div>
                     <label><?php esc_html_e( 'Chemin du fichier SQL', 'flora-shop' ); ?></label><br>
-                    <input type="text" name="sql_file_path" class="regular-text" value="<?php echo esc_attr( ABSPATH . '../wilaya/mysql_wilayas_communes.sql' ); ?>">
+                    <input type="text" name="sql_file_path" class="regular-text" value="<?php echo esc_attr( Flora_Importer::resolve_sql_path() ); ?>">
+                    <p class="description" style="margin:2px 0 0;"><?php esc_html_e( 'Laissez vide pour utiliser le fichier intégré au plugin (data/wilayas_communes.sql).', 'flora-shop' ); ?></p>
                 </div>
                 <div><button type="submit" class="button"><?php esc_html_e( 'Importer', 'flora-shop' ); ?></button></div>
             </form>

@@ -9,14 +9,41 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Flora_Importer {
 
-    // Lance l'importation complète : lit le fichier SQL puis importe les wilayas et communes.
-    public static function run( $sql_file_path = '' ) {
-        if ( empty( $sql_file_path ) ) {
-            $sql_file_path = ABSPATH . '../wilaya/mysql_wilayas_communes.sql';
+    // Chemins candidats du fichier SQL de référence, dans l'ordre :
+    // 1. données embarquées dans le plugin (pack autonome, rien à téléverser) ;
+    // 2. dossier « wilaya » à la racine de WordPress (déploiements existants) ;
+    // 3. dossier « wilaya » sœur de WordPress (ancien emplacement par défaut).
+    private static function default_sql_paths() {
+        return array(
+            FLORA_SHOP_PATH . 'data/wilayas_communes.sql',
+            ABSPATH . 'wilaya/mysql_wilayas_communes.sql',
+            ABSPATH . '../wilaya/mysql_wilayas_communes.sql',
+        );
+    }
+
+    // Récupère le chemin du fichier SQL : celui passé en argument s'il est renseigné,
+    // sinon le premier chemin candidat qui existe. Retourne le chemin ou null.
+    public static function resolve_sql_path( $sql_file_path = '' ) {
+        if ( ! empty( $sql_file_path ) ) {
+            return file_exists( $sql_file_path ) ? $sql_file_path : null;
         }
 
-        if ( ! file_exists( $sql_file_path ) ) {
-            return new WP_Error( 'file_not_found', sprintf( __( 'Fichier SQL introuvable : %s', 'flora-shop' ), $sql_file_path ) );
+        foreach ( self::default_sql_paths() as $candidate ) {
+            if ( file_exists( $candidate ) ) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    // Lance l'importation complète : lit le fichier SQL puis importe les wilayas et communes.
+    public static function run( $sql_file_path = '' ) {
+        $sql_file_path = self::resolve_sql_path( $sql_file_path );
+
+        if ( ! $sql_file_path ) {
+            $tried = implode( ', ', self::default_sql_paths() );
+            return new WP_Error( 'file_not_found', sprintf( __( 'Fichier SQL des wilayas/communes introuvable. Chemin(s) vérifié(s) : %s', 'flora-shop' ), $tried ) );
         }
 
         $content = file_get_contents( $sql_file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions

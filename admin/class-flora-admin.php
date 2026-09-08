@@ -51,6 +51,8 @@ class Flora_Admin {
         $result   = Flora_Importer::run( $sql_file );
 
         if ( is_wp_error( $result ) ) {
+            // Conserve le détail de l'erreur (message du WP_Error) pour l'afficher après redirection.
+            set_transient( 'flora_import_error', $result->get_error_message(), 60 );
             wp_safe_redirect( admin_url( 'admin.php?page=flora-shipping&tab=wilayas&flora_notice=error' ) );
             exit;
         }
@@ -224,8 +226,15 @@ class Flora_Admin {
                     $message  = sprintf( __( 'Import terminé : %d wilayas et %d communes importées.', 'flora-shop' ), $wilayas, $communes );
                     break;
                 case 'error':
+                    // Défaut : message générique, remplacé par le détail stocké lors d'un échec d'import SQL.
                     $message = __( 'Une erreur est survenue.', 'flora-shop' );
                     $type    = 'error';
+
+                    $import_error = get_transient( 'flora_import_error' );
+                    if ( $import_error ) {
+                        delete_transient( 'flora_import_error' );
+                        $message = $import_error;
+                    }
                     break;
             }
 

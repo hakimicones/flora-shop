@@ -332,17 +332,19 @@ class Flora_REST_Controller {
         return rest_ensure_response( $communes );
     }
 
-    // get_products : renvoie la liste des produits du catalogue.
+    // get_products : renvoie la liste des produits du catalogue, localisés dans la langue active.
     public function get_products( $request ) {
         $db       = Flora_DB::get_instance();
-        $products = $db->get_products();
+        $lang     = Flora_Helpers::get_active_lang();
+        $products = $db->hydrate_languages( 'product', $db->get_products(), $lang );
         return rest_ensure_response( $products );
     }
 
-    // get_packs : renvoie la liste des packs du catalogue.
+    // get_packs : renvoie la liste des packs du catalogue, localisés dans la langue active.
     public function get_packs( $request ) {
-        $db   = Flora_DB::get_instance();
-        $packs = $db->get_packs();
+        $db    = Flora_DB::get_instance();
+        $lang  = Flora_Helpers::get_active_lang();
+        $packs = $db->hydrate_languages( 'pack', $db->get_packs(), $lang );
         return rest_ensure_response( $packs );
     }
 

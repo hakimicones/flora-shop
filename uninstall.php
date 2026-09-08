@@ -18,6 +18,11 @@ $prefix = $wpdb->prefix . 'flora_';
 
 // Liste de toutes les tables à supprimer (ordre inversé pour respecter les clés étrangères).
 $tables = array(
+    $prefix . 'pack_translations',
+    $prefix . 'product_translations',
+    $prefix . 'tag_items',
+    $prefix . 'tags',
+    $prefix . 'categories',
     $prefix . 'order_details',
     $prefix . 'orders',
     $prefix . 'shipping_rates',
@@ -42,6 +47,11 @@ $options = array(
     'flora_product_discounts',
     'flora_cart_discounts',
     'flora_last_order_seq',
+    'flora_languages',
+    'flora_default_language',
+    'flora_show_order_email',
+    'flora_custom_css',
+    'flora_shipping_methods',
 );
 
 // Suppression de chaque option du plugin.

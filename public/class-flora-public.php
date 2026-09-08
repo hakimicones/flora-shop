@@ -90,6 +90,7 @@ class Flora_Public {
         $tag      = $atts['tag'];
 
         $db       = Flora_DB::get_instance();
+        $lang     = Flora_Helpers::get_active_lang();
         $products = array();
         $packs    = array();
 
@@ -110,6 +111,10 @@ class Flora_Public {
             ) );
         }
 
+        // Localisation des noms et descriptions selon la langue active (hydratation en masse).
+        $products = $db->hydrate_languages( 'product', $products, $lang );
+        $packs    = $db->hydrate_languages( 'pack', $packs, $lang );
+
         ob_start();
         include FLORA_SHOP_PATH . 'public/views/product-listing.php';
         return ob_get_clean();
@@ -123,9 +128,9 @@ class Flora_Public {
         $product_slug = isset( $_GET['flora_product'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_product'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
         $pack_slug    = isset( $_GET['flora_pack'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_pack'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 
-        // Branche « pack » : charge le pack, ses produits et ses promotions.
+        // Branche « pack » : charge le pack (localisé), ses produits et ses promotions.
         if ( $pack_slug ) {
-            $pack            = $db->get_pack_by_slug( $pack_slug );
+            $pack            = $db->localize_item( $db->get_pack_by_slug( $pack_slug ), 'pack' );
             $pack_products   = array();
             $pack_promotions = array();
             $promo_config    = array();
@@ -143,10 +148,10 @@ class Flora_Public {
             return ob_get_clean();
         }
 
-        // Branche « produit » : charge le produit et ses promotions.
+        // Branche « produit » : charge le produit (localisé) et ses promotions.
         $product = null;
         if ( $product_slug ) {
-            $product = $db->get_product_by_slug( $product_slug );
+            $product = $db->localize_item( $db->get_product_by_slug( $product_slug ), 'product' );
         }
 
         $product_promotions = array();
@@ -211,10 +216,10 @@ class Flora_Public {
 
                 if ( 'pack' === $free_type ) {
                     $free_pack = $db->get_pack( $free_id );
-                    $free_name = $free_pack ? $free_pack->name : __( 'Pack', 'flora-shop' );
+                    $free_name = $free_pack ? $db->localize_item( $free_pack, 'pack' )->name : __( 'Pack', 'flora-shop' );
                 } else {
                     $free_prod = $db->get_product( $free_id );
-                    $free_name = $free_prod ? $free_prod->name : __( 'Produit', 'flora-shop' );
+                    $free_name = $free_prod ? $db->localize_item( $free_prod, 'product' )->name : __( 'Produit', 'flora-shop' );
                 }
 
                 $entry['title']   = sprintf( __( 'Achetez %d × %s et recevez %d × %s offert(s)', 'flora-shop' ), $trigger_qty, $trigger_name, $free_qty, $free_name );

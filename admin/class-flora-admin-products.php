@@ -73,6 +73,9 @@ class Flora_Admin_Products {
             }
             $db->set_item_tags( 'product', $id, $tag_ids );
 
+            // Enregistrement des traductions (nom / slug / description par langue secondaire).
+            $db->set_translations( 'product', $id, Flora_Helpers::extract_translations( $_POST ) );
+
             wp_safe_redirect( admin_url( 'admin.php?page=flora-products&flora_notice=product_saved' ) );
             exit;
         }
@@ -110,8 +113,10 @@ class Flora_Admin_Products {
         $all_categories = $db->get_categories();
         $all_tags       = $db->get_tags();
         $product_tags   = array();
+        $translations   = array();
         if ( $product ) {
             $product_tags = $db->get_item_tags( 'product', $product->id );
+            $translations = $db->get_translations( 'product', $product->id );
         }
 
         include FLORA_SHOP_PATH . 'admin/views/product-form.php';

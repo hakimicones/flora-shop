@@ -36,6 +36,8 @@ class Flora_Activator {
             'flora_cart_discounts'       => array(),
             'flora_shipping_methods'     => self::default_shipping_methods(),
             'flora_show_order_email'     => 1,
+            'flora_languages'            => Flora_Helpers::default_languages(),
+            'flora_default_language'     => 'fr',
         );
 
         foreach ( $defaults as $key => $value ) {
@@ -255,6 +257,30 @@ class Flora_Activator {
             KEY type_tag (item_type, tag_id)
         ) $charset;";
 
+        $sql_product_translations = "CREATE TABLE {$prefix}product_translations (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            product_id bigint(20) unsigned NOT NULL,
+            lang varchar(10) NOT NULL,
+            name varchar(255) NOT NULL,
+            slug varchar(255) NOT NULL DEFAULT '',
+            description longtext,
+            PRIMARY KEY  (id),
+            UNIQUE KEY product_lang (product_id, lang),
+            KEY lang (lang)
+        ) $charset;";
+
+        $sql_pack_translations = "CREATE TABLE {$prefix}pack_translations (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            pack_id bigint(20) unsigned NOT NULL,
+            lang varchar(10) NOT NULL,
+            name varchar(255) NOT NULL,
+            slug varchar(255) NOT NULL DEFAULT '',
+            description longtext,
+            PRIMARY KEY  (id),
+            UNIQUE KEY pack_lang (pack_id, lang),
+            KEY lang (lang)
+        ) $charset;";
+
         dbDelta( $sql_products );
         dbDelta( $sql_packs );
         dbDelta( $sql_pack_products );
@@ -266,6 +292,8 @@ class Flora_Activator {
         dbDelta( $sql_categories );
         dbDelta( $sql_tags );
         dbDelta( $sql_tag_items );
+        dbDelta( $sql_product_translations );
+        dbDelta( $sql_pack_translations );
 
         self::migrate_wilayas_table();
         self::migrate_communes_columns();
@@ -293,6 +321,16 @@ class Flora_Activator {
             self::upgrade_1_5_0();
         }
 
+        if ( version_compare( $installed, '1.6.0', '<' ) ) {
+            self::upgrade_1_6_0();
+        }
+
+        // Création idempotente des versions arabes des pages. Elle est différée sur « init »
+        // afin que $wp_rewrite et les fonctions Polylang soient disponibles (wp_insert_post sûr).
+        if ( ! has_action( 'init', array( 'Flora_Activator', 'create_arabic_pages' ) ) ) {
+            add_action( 'init', array( 'Flora_Activator', 'create_arabic_pages' ) );
+        }
+
         if ( version_compare( $installed, FLORA_SHOP_VERSION, '<' ) ) {
             update_option( 'flora_shop_version', FLORA_SHOP_VERSION );
         }
@@ -307,6 +345,12 @@ class Flora_Activator {
     // (table flora_tags + liaison flora_tag_items). Les tables et colonnes sont créées
     // par create_tables(), cette étape est réservée aux traitements de données éventuels.
     private static function upgrade_1_5_0() {}
+
+    // Migration 1.6.0 : supports multilingue des produits/packs avec tables de traductions
+    // (flora_product_translations / flora_pack_translations) et options de langues.
+    // Les tables et options sont créées par create_tables()/ensure_options() ; la création
+    // des pages arabes est traitée de façon idempotente dans create_arabic_pages().
+    private static function upgrade_1_6_0() {}
 
     // Recrée la table wilayas si elle est absente ou corrompue, et migre les colonnes wilaya_id → wilaya_code.
     private static function migrate_wilayas_table() {
@@ -456,5 +500,77 @@ class Flora_Activator {
 
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN category_id bigint(20) unsigned NOT NULL DEFAULT 0 AFTER status, ADD KEY category_id (category_id)" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         }
+    }
+
+    // Crée les versions arabes des pages Flora (mêmes shortcodes) si Polylang est actif
+    // et que la traduction arabe n'existe pas encore. Idempotent : chaque page existante
+    // est réutilisée et le groupe de traductions Polylang (fr ↔ ar) est créé ou conservé.
+    // Exécutée sur « init » (voir maybe_upgrade) pour un contexte WordPress complet.
+    // Retourne la liste des clés de pages créées.
+    public static function create_arabic_pages() {
+        if ( ! Flora_Helpers::is_polylang_active() ) {
+            return array();
+        }
+
+        $created = array();
+
+        foreach ( Flora_Helpers::flora_pages() as $key => $info ) {
+            $fr_id = (int) Flora_Helpers::get_page_id( $key );
+
+            if ( ! $fr_id ) {
+                continue;
+            }
+
+            // Traduction française déjà liée à une page arabe via Polylang (groupe de traductions).
+            $existing = 0;
+            if ( function_exists( 'pll_get_post_translations' ) ) {
+                $translations = pll_get_post_translations( $fr_id );
+                if ( ! empty( $translations['ar'] ) ) {
+                    $existing = (int) $translations['ar'];
+                }
+            }
+
+            // Repli : page publiée dont le slug correspond à la version arabe (slug + « -ar »).
+            if ( ! $existing ) {
+                $candidate = get_page_by_path( $info['slug'] . '-ar' );
+                if ( $candidate && 'publish' === $candidate->post_status ) {
+                    $existing = (int) $candidate->ID;
+                }
+            }
+
+            if ( $existing ) {
+                update_option( 'flora_page_ar_' . $key, $existing );
+                continue;
+            }
+
+            $ar_page_id = wp_insert_post( array(
+                'post_title'   => Flora_Helpers::flora_page_title( $key, 'ar' ),
+                'post_name'    => $info['slug'] . '-ar',
+                'post_content' => $info['shortcode'],
+                'post_status'  => 'publish',
+                'post_type'    => 'page',
+            ) );
+
+            if ( ! $ar_page_id || is_wp_error( $ar_page_id ) ) {
+                continue;
+            }
+
+            // Association de la langue arabe, puis création / mise à jour du groupe de traductions fr ↔ ar.
+            if ( function_exists( 'pll_set_post_language' ) ) {
+                pll_set_post_language( $ar_page_id, 'ar' );
+            }
+
+            if ( function_exists( 'pll_save_post_translations' ) && function_exists( 'pll_get_post_translations' ) ) {
+                $translations = pll_get_post_translations( $fr_id );
+                $translations['fr'] = $fr_id;
+                $translations['ar'] = (int) $ar_page_id;
+                pll_save_post_translations( $translations );
+            }
+
+            update_option( 'flora_page_ar_' . $key, (int) $ar_page_id );
+            $created[] = $key;
+        }
+
+        return $created;
     }
 }

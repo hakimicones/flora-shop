@@ -518,17 +518,31 @@ class Flora_Cart {
         return $promo_discounts;
     }
 
-    // Résolution du nom d'un article (produit ou pack) à partir de la base de données.
+    // Résolution du nom d'un article (produit ou pack) à partir de la base de données,
+    // dans la langue active. Les types « free_* » sont mappés vers leur type réel.
     private static function resolve_item_name( $type, $id ) {
         $db = Flora_DB::get_instance();
 
+        if ( 'free_pack' === $type ) {
+            $type = 'pack';
+        } elseif ( 'free_item' === $type ) {
+            $type = 'product';
+        }
+
         if ( 'pack' === $type ) {
             $pack = $db->get_pack( $id );
-            return $pack ? $pack->name : __( 'Pack', 'flora-shop' );
+            if ( $pack ) {
+                return $db->localize_item( $pack, 'pack' )->name;
+            }
+            return __( 'Pack', 'flora-shop' );
         }
 
         $product = $db->get_product( $id );
-        return $product ? $product->name : __( 'Produit', 'flora-shop' );
+        if ( $product ) {
+            return $db->localize_item( $product, 'product' )->name;
+        }
+
+        return __( 'Produit', 'flora-shop' );
     }
 
     // Résolution du prix unitaire d'un article (produit ou pack) ; retourne un float ou 0.
@@ -702,7 +716,8 @@ class Flora_Cart {
             if ( 'product' === $item['type'] ) {
                 $product = $db->get_product( $item['id'] );
                 if ( $product ) {
-                    $item_name  = $product->name;
+                    // Nom instantané dans la langue active au moment de la commande (snapshot).
+                    $item_name  = $db->localize_item( $product, 'product' )->name;
                     $unit_price = (float) $product->price;
                     $line_total = $unit_price * $item['quantity'];
                     $db->decrement_stock( $item['id'], $item['quantity'] );
@@ -710,7 +725,7 @@ class Flora_Cart {
             } elseif ( 'pack' === $item['type'] ) {
                 $pack = $db->get_pack( $item['id'] );
                 if ( $pack ) {
-                    $item_name  = $pack->name;
+                    $item_name  = $db->localize_item( $pack, 'pack' )->name;
                     $unit_price = (float) $pack->pack_price;
                     $line_total = $unit_price * $item['quantity'];
                 }
@@ -769,7 +784,7 @@ class Flora_Cart {
             if ( 'product' === $item['type'] ) {
                 $product = $db->get_product( $item['id'] );
                 if ( $product ) {
-                    $data['name']       = $product->name;
+                    $data['name']       = $db->localize_item( $product, 'product' )->name;
                     $data['price']      = (float) $product->price;
                     $data['line_total'] = $data['price'] * $item['quantity'];
                     $data['image']      = $product->image_url;
@@ -777,13 +792,14 @@ class Flora_Cart {
             } elseif ( 'pack' === $item['type'] ) {
                 $pack = $db->get_pack( $item['id'] );
                 if ( $pack ) {
-                    $data['name']       = $pack->name;
+                    $data['name']       = $db->localize_item( $pack, 'pack' )->name;
                     $data['price']      = (float) $pack->pack_price;
                     $data['line_total'] = $data['price'] * $item['quantity'];
                     $data['image']      = $pack->image_url;
                 }
             } elseif ( 'free_item' === $item['type'] || 'free_pack' === $item['type'] ) {
-                $data['name']        = isset( $item['name'] ) ? $item['name'] : ( 'free_pack' === $item['type'] ? __( 'Pack gratuit', 'flora-shop' ) : __( 'Produit gratuit', 'flora-shop' ) );
+                // Nom de l'article offert résolu en direct : un changement de langue est reflété immédiatement.
+                $data['name']        = self::resolve_item_name( $item['type'], $item['id'] );
                 $data['price']       = 0;
                 $data['line_total']  = 0;
                 $data['is_free']     = true;

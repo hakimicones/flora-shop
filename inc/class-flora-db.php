@@ -376,6 +376,176 @@ class Flora_DB {
         return $ok;
     }
 
+    // Retourne le nom qualifié de la table de traductions selon le type d'article.
+    private function translation_table( $item_type ) {
+        return $this->table( 'product' === $item_type ? 'product_translations' : 'pack_translations' );
+    }
+
+    // Retourne la clé d'association (product_id / pack_id) selon le type d'article.
+    private function translation_id_key( $item_type ) {
+        return 'product' === $item_type ? 'product_id' : 'pack_id';
+    }
+
+    // Récupère toutes les traductions d'un article sous forme de tableau [lang => objet ligne].
+    // Retourne un tableau vide si aucune traduction n'existe.
+    public function get_translations( $item_type, $item_id ) {
+        global $wpdb;
+        $table  = $this->translation_table( $item_type );
+        $id_key = $this->translation_id_key( $item_type );
+        $rows   = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$id_key} = %d", $item_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        $translations = array();
+        foreach ( (array) $rows as $row ) {
+            $translations[ $row->lang ] = $row;
+        }
+
+        return $translations;
+    }
+
+    // Récupère la traduction d'un article dans une langue donnée. Retourne un objet ligne ou null.
+    public function get_translation( $item_type, $item_id, $lang ) {
+        global $wpdb;
+        $table  = $this->translation_table( $item_type );
+        $id_key = $this->translation_id_key( $item_type );
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$id_key} = %d AND lang = %s", $item_id, $lang ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Enregistre les traductions d'un article : purge des anciennes lignes puis insertion des nouvelles.
+    // « translations » est un tableau [lang => ['name', 'slug', 'description']] ; seules les langues
+    // actives pourvues d'un nom non vide sont écrites. Un slug vide est déduit du nom. Retourne vrai en cas de succès.
+    public function set_translations( $item_type, $item_id, $translations ) {
+        global $wpdb;
+
+        if ( ! in_array( $item_type, array( 'product', 'pack' ), true ) ) {
+            return false;
+        }
+
+        $table     = $this->translation_table( $item_type );
+        $id_key    = $this->translation_id_key( $item_type );
+        $languages = array_keys( Flora_Helpers::flora_languages() );
+
+        // Remplacement complet : purge de toutes les traductions de l'article puis réinsertion.
+        $wpdb->delete( $table, array( $id_key => $item_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( empty( $translations ) || ! is_array( $translations ) ) {
+            return true;
+        }
+
+        $ok = true;
+        foreach ( $translations as $lang => $entry ) {
+            $lang = sanitize_title( (string) $lang );
+
+            // Seules les langues actives du shop sont acceptées, et une traduction sans nom est ignorée.
+            if ( ! in_array( $lang, $languages, true ) || empty( $entry['name'] ) ) {
+                continue;
+            }
+
+            $inserted = $wpdb->insert( $table, array( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                $id_key     => $item_id,
+                'lang'      => $lang,
+                'name'      => sanitize_text_field( $entry['name'] ),
+                'slug'      => ! empty( $entry['slug'] ) ? sanitize_title( $entry['slug'] ) : sanitize_title( $entry['name'] ),
+                'description' => isset( $entry['description'] ) ? wp_kses_post( (string) $entry['description'] ) : '',
+            ) );
+
+            if ( false === $inserted ) {
+                $ok = false;
+                break;
+            }
+        }
+
+        return $ok;
+    }
+
+    // Applique la traduction d'une langue donnée à un article (remplace nom et description).
+    // Le slug reste celui de la langue par défaut : les URLs des fiches restent stables entre les langues.
+    // Retourne l'article localisé (ou l'article inchangé si absent / non traduit).
+    public function localize_item( $item, $item_type, $lang = '' ) {
+        if ( ! $item ) {
+            return $item;
+        }
+
+        if ( ! $lang ) {
+            $lang = Flora_Helpers::get_active_lang();
+        }
+
+        // Langue par défaut : la ligne de base contient déjà les bonnes valeurs.
+        if ( $lang === Flora_Helpers::default_language() ) {
+            return $item;
+        }
+
+        $translation = $this->get_translation( $item_type, $item->id, $lang );
+        if ( ! $translation ) {
+            return $item;
+        }
+
+        if ( '' !== $translation->name ) {
+            $item->name = $translation->name;
+        }
+        if ( isset( $translation->description ) && '' !== $translation->description && null !== $translation->description ) {
+            $item->description = $translation->description;
+        }
+
+        return $item;
+    }
+
+    // Applique la traduction en masse à une liste d'articles du même type : une seule requête
+    // pour tous les IDs, puis remplace nom/description sur chaque ligne traduite.
+    // Retourne la liste localisée (inchangée pour la langue par défaut ou sans traduction).
+    public function hydrate_languages( $item_type, $items, $lang = '' ) {
+        if ( empty( $items ) || ! is_array( $items ) ) {
+            return $items;
+        }
+
+        if ( ! $lang ) {
+            $lang = Flora_Helpers::get_active_lang();
+        }
+
+        if ( $lang === Flora_Helpers::default_language() ) {
+            return $items;
+        }
+
+        global $wpdb;
+        $table  = $this->translation_table( $item_type );
+        $id_key = $this->translation_id_key( $item_type );
+
+        $ids = array();
+        foreach ( $items as $item ) {
+            $ids[] = (int) $item->id;
+        }
+        $ids = array_values( array_unique( array_filter( $ids ) ) );
+
+        if ( empty( $ids ) ) {
+            return $items;
+        }
+
+        $placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
+        $params       = array_merge( array( $lang ), $ids );
+        $rows         = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE lang = %s AND {$id_key} IN ({$placeholders})", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        $by_id = array();
+        foreach ( (array) $rows as $row ) {
+            $by_id[ (int) $row->{$id_key} ] = $row;
+        }
+
+        foreach ( $items as $i => $item ) {
+            $id = (int) $item->id;
+            if ( ! isset( $by_id[ $id ] ) ) {
+                continue;
+            }
+
+            $translation = $by_id[ $id ];
+            if ( '' !== $translation->name ) {
+                $items[ $i ]->name = $translation->name;
+            }
+            if ( isset( $translation->description ) && '' !== $translation->description && null !== $translation->description ) {
+                $items[ $i ]->description = $translation->description;
+            }
+        }
+
+        return $items;
+    }
+
     // Récupère les produits liés à un pack. Retourne un tableau d'objets.
     public function get_pack_products( $pack_id ) {
         global $wpdb;

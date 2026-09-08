@@ -40,6 +40,43 @@
             </tr>
         </table>
 
+        <?php /* --- Langues : activées, libellés et langue par défaut de la boutique --- */ ?>
+        <h2><?php esc_html_e( 'Langues', 'flora-shop' ); ?></h2>
+        <p class="description"><?php esc_html_e( 'Chaque langue secondaire peut traduire le nom et la description des produits et packs. La langue par défaut correspond aux données saisies dans les fiches.', 'flora-shop' ); ?></p>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th style="width:100px;"><?php esc_html_e( 'Activée', 'flora-shop' ); ?></th>
+                    <th style="width:150px;"><?php esc_html_e( 'Code', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Libellé', 'flora-shop' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ( $languages as $i => $lang ) : ?>
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="languages[<?php echo esc_attr( $i ); ?>][enabled]" value="1" <?php checked( empty( $lang['enabled'] ) || (int) $lang['enabled'] === 1 ); ?>>
+                        </td>
+                        <td><input type="text" name="languages[<?php echo esc_attr( $i ); ?>][code]" class="small-text" value="<?php echo esc_attr( isset( $lang['code'] ) ? $lang['code'] : '' ); ?>"></td>
+                        <td><input type="text" name="languages[<?php echo esc_attr( $i ); ?>][label]" class="regular-text" value="<?php echo esc_attr( isset( $lang['label'] ) ? $lang['label'] : '' ); ?>"></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <table class="form-table">
+            <tr>
+                <th><label for="default_language"><?php esc_html_e( 'Langue par défaut', 'flora-shop' ); ?></label></th>
+                <td>
+                    <select id="default_language" name="default_language">
+                        <?php foreach ( Flora_Helpers::flora_languages() as $lang_code => $lang_label ) : ?>
+                            <option value="<?php echo esc_attr( $lang_code ); ?>" <?php selected( $default_language, $lang_code ); ?>><?php echo esc_html( $lang_label ); ?> (<?php echo esc_html( $lang_code ); ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="description"><?php esc_html_e( 'Langue des champs principaux des fiches produits/packs (elle n\'est pas traduisible).', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
+        </table>
+
         <?php /* --- Pages de la boutique : association de chaque étape à une page WordPress existante --- */ ?>
         <h2><?php esc_html_e( 'Pages', 'flora-shop' ); ?></h2>
         <p class="description"><?php esc_html_e( 'Sélectionnez la page associée à chaque étape de la boutique. Ces sélections remplacent les pages créées automatiquement.', 'flora-shop' ); ?></p>

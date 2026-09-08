@@ -70,6 +70,9 @@ class Flora_Admin_Packs {
             }
             $db->set_item_tags( 'pack', $id, $tag_ids );
 
+            // Enregistrement des traductions (nom / description par langue secondaire).
+            $db->set_translations( 'pack', $id, Flora_Helpers::extract_translations( $_POST ) );
+
             $pack_products = array();
             // Validation stricte des lignes produits du pack : chaque élément doit fournir
             // product_id et quantity non vides, convertis en entiers (absint).
@@ -129,8 +132,10 @@ class Flora_Admin_Packs {
         $all_categories = $db->get_categories();
         $all_tags       = $db->get_tags();
         $pack_tags      = array();
+        $translations   = array();
         if ( $pack ) {
             $pack_tags = $db->get_item_tags( 'pack', $pack->id );
+            $translations = $db->get_translations( 'pack', $pack->id );
         }
 
         include FLORA_SHOP_PATH . 'admin/views/pack-form.php';

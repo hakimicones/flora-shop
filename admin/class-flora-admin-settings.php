@@ -26,6 +26,8 @@ class Flora_Admin_Settings {
         $cart_discounts          = get_option( 'flora_cart_discounts', array() );
         $show_order_email        = get_option( 'flora_show_order_email', 1 );
         $custom_css              = get_option( 'flora_custom_css', '' );
+        $languages               = get_option( 'flora_languages', Flora_Helpers::default_languages() );
+        $default_language        = get_option( 'flora_default_language', 'fr' );
 
         // Pages associées à chaque étape de la boutique (IDs résolus par les helpers).
         $flora_pages = array();
@@ -60,6 +62,37 @@ class Flora_Admin_Settings {
             // CSS personnalisé : les balises HTML (<style>, </style>, etc.) sont retirées
             // pour empêcher toute échappée de contexte HTML ; le CSS lui-même est conservé.
             update_option( 'flora_custom_css', wp_strip_all_tags( wp_unslash( $_POST['custom_css'] ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+            // Langues : revalidation ligne par ligne (code, libellé, activée) ; on garantit
+            // toujours au moins une langue active pour la boutique.
+            $raw_languages = array();
+            if ( isset( $_POST['languages'] ) && is_array( $_POST['languages'] ) ) {
+                foreach ( $_POST['languages'] as $lang ) {
+                    $code    = sanitize_title( isset( $lang['code'] ) ? $lang['code'] : '' );
+                    $label   = Flora_Helpers::sanitize_text( isset( $lang['label'] ) ? $lang['label'] : '' );
+                    $enabled = ! empty( $lang['enabled'] );
+
+                    if ( $code && $label && $enabled ) {
+                        $raw_languages[] = array(
+                            'code'    => $code,
+                            'label'   => $label,
+                            'enabled' => 1,
+                        );
+                    }
+                }
+            }
+            if ( empty( $raw_languages ) ) {
+                $raw_languages = Flora_Helpers::default_languages();
+            }
+            update_option( 'flora_languages', $raw_languages );
+
+            // Langue par défaut : doit rester dans la liste des langues activées ; sinon repli sur 'fr' (ou première langue active).
+            $active_codes      = wp_list_pluck( $raw_languages, 'code' );
+            $default_language  = sanitize_title( isset( $_POST['default_language'] ) ? $_POST['default_language'] : 'fr' );
+            if ( ! in_array( $default_language, $active_codes, true ) ) {
+                $default_language = in_array( 'fr', $active_codes, true ) ? 'fr' : $active_codes[0];
+            }
+            update_option( 'flora_default_language', $default_language );
 
             // Remises produits : tableau revalidé ligne par ligne ; chaque entrée doit
             // fournir product_id, min_qty et percent non vides, convertis en entiers.

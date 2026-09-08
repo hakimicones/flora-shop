@@ -45,7 +45,7 @@
                     <h3 class="flora-pack-detail-title"><?php esc_html_e( 'Contenu du pack', 'flora-shop' ); ?></h3>
                     <div class="flora-pack-accordion">
                         <?php foreach ( $pack_products as $pp ) :
-                            $pp_prod = $db->get_product( $pp->product_id );
+                            $pp_prod = $db->localize_item( $db->get_product( $pp->product_id ), 'product' );
                             if ( ! $pp_prod ) {
                                 continue;
                             }

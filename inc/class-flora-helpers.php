@@ -194,4 +194,133 @@ class Flora_Helpers {
             wp_die( esc_html__( 'Erreur de sécurité. Veuillez réessayer.', 'flora-shop' ) );
         }
     }
+
+    // Liste des langues par défaut de la boutique (français + arabe), utilisée au premier install.
+    public static function default_languages() {
+        return array(
+            array( 'code' => 'fr', 'label' => 'Français', 'enabled' => 1 ),
+            array( 'code' => 'ar', 'label' => 'العربية', 'enabled' => 1 ),
+        );
+    }
+
+    // Retourne les langues actives du shop sous forme de tableau [code => libellé].
+    // Garantit toujours au moins une langue active (repli : français).
+    public static function flora_languages() {
+        $languages = get_option( 'flora_languages' );
+        if ( ! is_array( $languages ) || empty( $languages ) ) {
+            $languages = self::default_languages();
+        }
+
+        $active = array();
+        foreach ( $languages as $lang ) {
+            if ( empty( $lang['code'] ) || empty( $lang['label'] ) ) {
+                continue;
+            }
+            // Une langue « désactivée » n'apparaît pas (case à cocher absente du POST).
+            if ( isset( $lang['enabled'] ) && empty( $lang['enabled'] ) ) {
+                continue;
+            }
+            $active[ sanitize_title( $lang['code'] ) ] = $lang['label'];
+        }
+
+        if ( empty( $active ) ) {
+            $active['fr'] = 'Français';
+        }
+
+        return $active;
+    }
+
+    // Retourne le code de la langue par défaut (langue des données en base) ; toujours dans les langues actives.
+    public static function default_language() {
+        $languages = array_keys( self::flora_languages() );
+        $default   = sanitize_title( (string) get_option( 'flora_default_language', 'fr' ) );
+
+        return in_array( $default, $languages, true ) ? $default : $languages[0];
+    }
+
+    // Retourne les langues secondaires (actives, hors langue par défaut) : destinations des traductions produits/packs.
+    public static function secondary_languages() {
+        $all     = self::flora_languages();
+        $default = self::default_language();
+        unset( $all[ $default ] );
+        return $all;
+    }
+
+    // Indique si Polylang est présent. Le plugin reste fonctionnel sans Polylang :
+    // les appels ci-dessous sont toujours conditionnés par la présence de ses fonctions.
+    public static function is_polylang_active() {
+        return function_exists( 'pll_current_language' ) || function_exists( 'pll_get_post_language' );
+    }
+
+    // Retourne la langue active du front. Priorité : langue Polylang courante (si active),
+    // puis paramètre « ?lang=xx » (repli plugin-indépendant), puis langue par défaut.
+    // Ne plante jamais en l'absence de Polylang.
+    public static function get_active_lang() {
+        $languages = array_keys( self::flora_languages() );
+
+        // Paramètre explicite « ?lang=xx » : prioritaire quand il est présent, uniquement si la langue est active.
+        // (Cette priorité permet aussi d'imposer une langue côté appels REST/AJAX.)
+        if ( isset( $_GET['lang'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+            $lang = sanitize_title( wp_unslash( $_GET['lang'] ) ); // phpcs:ignore WordPress.Security.NonceVerification, WordPress.Security.ValidatedSanitizedInput
+            if ( in_array( $lang, $languages, true ) ) {
+                return $lang;
+            }
+        }
+
+        // Langue Polylang courante (bascules du sélecteur du site), si elle correspond à une langue du shop.
+        if ( self::is_polylang_active() && function_exists( 'pll_current_language' ) ) {
+            $pll = pll_current_language( 'slug' );
+            if ( $pll && in_array( (string) $pll, $languages, true ) ) {
+                return (string) $pll;
+            }
+        }
+
+        return self::default_language();
+    }
+
+    // Retourne le titre d'une page Flora dans une langue donnée (repli : libellé de la langue par défaut).
+    public static function flora_page_title( $key, $lang = '' ) {
+        $titles = array(
+            'ar' => array(
+                'shop'          => 'بوتيك',
+                'cart'          => 'سلة التسوق',
+                'checkout'      => 'إتمام الطلب',
+                'order_confirm' => 'تأكيد الطلب',
+                'product'       => 'المنتج',
+            ),
+        );
+
+        $pages = self::flora_pages();
+
+        if ( isset( $titles[ $lang ][ $key ] ) ) {
+            return $titles[ $lang ][ $key ];
+        }
+
+        return isset( $pages[ $key ]['title'] ) ? $pages[ $key ]['title'] : $key;
+    }
+
+    // Extrait et assainit les traductions soumises via POST (nom / slug / description par langue).
+    // Le slug est déduit du nom traduit. Retourne un tableau [lang => ['name', 'slug', 'description']],
+    // uniquement pour les langues pourvues d'un nom non vide.
+    public static function extract_translations( $post ) {
+        $translations = array();
+
+        if ( empty( $post['translations'] ) || ! is_array( $post['translations'] ) ) {
+            return $translations;
+        }
+
+        foreach ( $post['translations'] as $lang => $entry ) {
+            if ( ! is_array( $entry ) || empty( $entry['name'] ) ) {
+                continue;
+            }
+
+            $translations[ $lang ] = array(
+                'name'        => self::sanitize_text( $entry['name'] ),
+                'slug'        => sanitize_title( $entry['name'] ),
+                'description' => isset( $entry['description'] ) ? wp_kses_post( $entry['description'] ) : '',
+            );
+        }
+
+        return $translations;
+    }
 }

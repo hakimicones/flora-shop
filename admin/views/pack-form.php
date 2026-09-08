@@ -73,6 +73,32 @@
             </tr>
         </table>
 
+        <?php /* --- Traductions : nom et description par langue secondaire (optionnel) --- */ ?>
+        <h2><?php esc_html_e( 'Traductions', 'flora-shop' ); ?></h2>
+        <p class="description"><?php esc_html_e( 'Ces champs affichent le pack dans les langues secondaires de la boutique. La langue par défaut est celle des champs principaux.', 'flora-shop' ); ?></p>
+        <?php if ( empty( Flora_Helpers::secondary_languages() ) ) : ?>
+            <p class="description"><?php esc_html_e( 'Aucune langue secondaire configurée dans les paramètres du plugin.', 'flora-shop' ); ?></p>
+        <?php else : ?>
+            <table class="form-table">
+                <?php foreach ( Flora_Helpers::secondary_languages() as $code => $label ) : ?>
+                    <?php $tr = isset( $translations[ $code ] ) ? $translations[ $code ] : null; ?>
+                    <tr>
+                        <th colspan="2" style="padding-bottom:0;">
+                            <h3 style="margin:12px 0 4px;"><?php echo esc_html( $label ); ?> (<?php echo esc_html( $code ); ?>)</h3>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th><label for="translations_<?php echo esc_attr( $code ); ?>_name"><?php esc_html_e( 'Nom traduit', 'flora-shop' ); ?></label></th>
+                        <td><input type="text" id="translations_<?php echo esc_attr( $code ); ?>_name" name="translations[<?php echo esc_attr( $code ); ?>][name]" class="regular-text" value="<?php echo $tr ? esc_attr( $tr->name ) : ''; ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="translations_<?php echo esc_attr( $code ); ?>_description"><?php esc_html_e( 'Description traduite', 'flora-shop' ); ?></label></th>
+                        <td><textarea id="translations_<?php echo esc_attr( $code ); ?>_description" name="translations[<?php echo esc_attr( $code ); ?>][description]" class="large-text" rows="5"><?php echo $tr ? esc_textarea( $tr->description ) : ''; ?></textarea></td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+        <?php endif; ?>
+
         <?php /* --- Table des produits contenus dans le pack (lignes dynamiques) --- */ ?>
         <h2><?php esc_html_e( 'Produits dans ce pack', 'flora-shop' ); ?></h2>
         <table class="wp-list-table widefat fixed striped" id="flora-pack-products">

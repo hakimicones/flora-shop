@@ -107,7 +107,7 @@
                         <?php if ( ! empty( $pack_products_list ) ) : ?>
                             <ul class="flora-pack-contents">
                                 <?php foreach ( $pack_products_list as $pp ) :
-                                    $pp_prod = $db->get_product( $pp->product_id );
+                                    $pp_prod = $db->localize_item( $db->get_product( $pp->product_id ), 'product' );
                                     if ( $pp_prod ) :
                                 ?>
                                     <li><?php echo esc_html( $pp_prod->name ); ?> × <?php echo esc_html( $pp->quantity ); ?></li>

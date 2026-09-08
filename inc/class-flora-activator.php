@@ -231,6 +231,7 @@ class Flora_Activator {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             name varchar(255) NOT NULL,
             slug varchar(255) NOT NULL,
+            parent_id bigint(20) unsigned NOT NULL DEFAULT 0,
             description varchar(500) DEFAULT '',
             sort_order int(11) NOT NULL DEFAULT 0,
             created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -269,6 +270,18 @@ class Flora_Activator {
             KEY lang (lang)
         ) $charset;";
 
+        $sql_category_translations = "CREATE TABLE {$prefix}category_translations (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            category_id bigint(20) unsigned NOT NULL,
+            lang varchar(10) NOT NULL,
+            name varchar(255) NOT NULL,
+            slug varchar(255) NOT NULL DEFAULT '',
+            description varchar(500) DEFAULT '',
+            PRIMARY KEY  (id),
+            UNIQUE KEY category_lang (category_id, lang),
+            KEY lang (lang)
+        ) $charset;";
+
         $sql_pack_translations = "CREATE TABLE {$prefix}pack_translations (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             pack_id bigint(20) unsigned NOT NULL,
@@ -294,6 +307,7 @@ class Flora_Activator {
         dbDelta( $sql_tag_items );
         dbDelta( $sql_product_translations );
         dbDelta( $sql_pack_translations );
+        dbDelta( $sql_category_translations );
 
         self::migrate_wilayas_table();
         self::migrate_communes_columns();
@@ -301,6 +315,7 @@ class Flora_Activator {
         self::migrate_orders_columns();
         self::migrate_promotions_columns();
         self::migrate_category_id_columns();
+        self::migrate_category_parent_columns();
     }
 
     // Vérifie si une mise à jour de version est nécessaire et applique, dans l'ordre,
@@ -499,6 +514,17 @@ class Flora_Activator {
             }
 
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN category_id bigint(20) unsigned NOT NULL DEFAULT 0 AFTER status, ADD KEY category_id (category_id)" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+    }
+
+    // Ajoute la colonne parent_id sur la table des catégories si elle manque (hiérarchie).
+    private static function migrate_category_parent_columns() {
+        global $wpdb;
+        $table   = $wpdb->prefix . 'flora_categories';
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( is_array( $columns ) && ! in_array( 'parent_id', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN parent_id bigint(20) unsigned NOT NULL DEFAULT 0 AFTER slug" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         }
     }
 

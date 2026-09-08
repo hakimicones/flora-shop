@@ -378,12 +378,24 @@ class Flora_DB {
 
     // Retourne le nom qualifié de la table de traductions selon le type d'article.
     private function translation_table( $item_type ) {
-        return $this->table( 'product' === $item_type ? 'product_translations' : 'pack_translations' );
+        if ( 'product' === $item_type ) {
+            return $this->table( 'product_translations' );
+        }
+        if ( 'category' === $item_type ) {
+            return $this->table( 'category_translations' );
+        }
+        return $this->table( 'pack_translations' );
     }
 
-    // Retourne la clé d'association (product_id / pack_id) selon le type d'article.
+    // Retourne la clé d'association (product_id / category_id / pack_id) selon le type d'article.
     private function translation_id_key( $item_type ) {
-        return 'product' === $item_type ? 'product_id' : 'pack_id';
+        if ( 'product' === $item_type ) {
+            return 'product_id';
+        }
+        if ( 'category' === $item_type ) {
+            return 'category_id';
+        }
+        return 'pack_id';
     }
 
     // Récupère toutes les traductions d'un article sous forme de tableau [lang => objet ligne].
@@ -416,7 +428,7 @@ class Flora_DB {
     public function set_translations( $item_type, $item_id, $translations ) {
         global $wpdb;
 
-        if ( ! in_array( $item_type, array( 'product', 'pack' ), true ) ) {
+        if ( ! in_array( $item_type, array( 'product', 'category', 'pack' ), true ) ) {
             return false;
         }
 

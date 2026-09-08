@@ -1,0 +1,62 @@
+name: Release
+
+# Déclenché par un tag v<version> (ex : v1.5.0).
+# Fabrique flora-shop.zip (racine flora-shop/), crée la Release et y attache
+# le zip. plugin-update-checker (embarqué dans le plugin) le propose alors
+# comme mise à jour dans wp-admin.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Valider la cohérence des versions (tag = en-tête = constante)
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          HEADER_VERSION="$(grep -E '^\s*\*\s*Version:' flora-shop.php | sed -E 's/.*Version:[[:space:]]*([0-9][^ ]*).*/\1/')"
+          CONST_VERSION="$(grep -oE "define\( 'FLORA_SHOP_VERSION', *'[^']+'\);" flora-shop.php | sed -E "s/.*'([^']+)'.*/\1/")"
+          echo "tag=$TAG header=$HEADER_VERSION const=$CONST_VERSION"
+          [ "$TAG" = "$HEADER_VERSION" ] || { echo "::error::Tag ($TAG) != Version en-tête ($HEADER_VERSION)"; exit 1; }
+          [ "$TAG" = "$CONST_VERSION" ] || { echo "::error::Tag ($TAG) != FLORA_SHOP_VERSION ($CONST_VERSION)"; exit 1; }
+
+      - name: Fabriquer flora-shop.zip
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q zip rsync
+          mkdir -p dist/src
+          rsync -a --exclude='.git*' --exclude='.github' --exclude='tools' --exclude='dist' --exclude='*.md' ./ dist/src/flora-shop/
+          cd dist
+          zip -rq flora-shop.zip flora-shop
+          unzip -l flora-shop.zip | tail -3
+
+      - name: Publier l'artefact du zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: flora-shop
+          path: dist/flora-shop.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: flora-shop
+          path: dist
+
+      - name: Créer la Release GitHub et attacher le zip
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/flora-shop.zip
+          generate_release_notes: true

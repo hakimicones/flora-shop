@@ -3,8 +3,8 @@
  * Plugin Name: Flora Shop
  * Plugin URI: https://flora-shop.dz
  * Description: Solution e-commerce complète avec gestion de produits, packs, promotions BXGY, transport dynamique (Wilaya/Commune) et deux méthodes de livraison.
- * Version: 1.4.0
- * Author: icones software
+ * Version: 1.4.1
+ * Author: A.Hakim NOUAS
  * Author URI: https://icones-software.dz
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -19,10 +19,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes globales : version, chemins et basename du plugin.
-define( 'FLORA_SHOP_VERSION', '1.4.0' );
+define( 'FLORA_SHOP_VERSION', '1.4.1' );
 define( 'FLORA_SHOP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FLORA_SHOP_URL', plugin_dir_url( __FILE__ ) );
 define( 'FLORA_SHOP_BASENAME', plugin_basename( __FILE__ ) );
+define( 'FLORA_SHOP_FILE', __FILE__ );
 
 // Chargement des fichiers communs (helpers, BDD, panier, activator, importateur).
 require_once FLORA_SHOP_PATH . 'inc/class-flora-helpers.php';
@@ -33,6 +34,7 @@ require_once FLORA_SHOP_PATH . 'inc/class-flora-importer.php';
 
 // Chargement conditionnel du contrôleur admin (back-office uniquement).
 if ( is_admin() ) {
+    require_once FLORA_SHOP_PATH . 'inc/class-flora-updates.php';
     require_once FLORA_SHOP_PATH . 'admin/class-flora-admin.php';
 }
 
@@ -62,3 +64,8 @@ add_action( 'rest_api_init', function () {
 // Initialisation du panier Flora et vérification de la mise à jour de version.
 add_action( 'plugins_loaded', array( 'Flora_Cart', 'init' ) );
 add_action( 'plugins_loaded', array( 'Flora_Activator', 'maybe_upgrade' ) );
+
+// Vérification des mises à jour du plugin via les Releases GitHub (update checker).
+if ( is_admin() ) {
+    new Flora_Updates();
+}

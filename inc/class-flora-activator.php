@@ -15,7 +15,8 @@ class Flora_Activator {
     public static function activate() {
         self::create_tables();
         self::create_pages();
-        self::set_default_options();
+        self::ensure_options();
+        self::maybe_upgrade();
         flush_rewrite_rules();
     }
 
@@ -24,15 +25,24 @@ class Flora_Activator {
         flush_rewrite_rules();
     }
 
-    // Insère les options par défaut (devise, seuil livraison gratuite, remises, méthodes de livraison).
-    private static function set_default_options() {
-        add_option( 'flora_shop_version', FLORA_SHOP_VERSION );
-        add_option( 'flora_currency', 'DZD' );
-        add_option( 'flora_free_shipping_threshold', 0 );
-        add_option( 'flora_product_discounts', array() );
-        add_option( 'flora_cart_discounts', array() );
-        add_option( 'flora_shipping_methods', self::default_shipping_methods() );
-        add_option( 'flora_show_order_email', 1 );
+    // Insère les options par défaut si elles sont absentes (idempotent) :
+    // n'écrase jamais une valeur existante, garantit le seed après une mise à jour.
+    private static function ensure_options() {
+        $defaults = array(
+            'flora_shop_version'         => FLORA_SHOP_VERSION,
+            'flora_currency'             => 'DZD',
+            'flora_free_shipping_threshold' => 0,
+            'flora_product_discounts'    => array(),
+            'flora_cart_discounts'       => array(),
+            'flora_shipping_methods'     => self::default_shipping_methods(),
+            'flora_show_order_email'     => 1,
+        );
+
+        foreach ( $defaults as $key => $value ) {
+            if ( false === get_option( $key, false ) ) {
+                add_option( $key, $value );
+            }
+        }
     }
 
     // Définit la configuration par défaut des deux méthodes de livraison :
@@ -231,18 +241,29 @@ class Flora_Activator {
         self::migrate_promotions_columns();
     }
 
-    // Vérifie si une mise à jour de version est nécessaire et relance la création des pages, des tables et des options manquantes.
+    // Vérifie si une mise à jour de version est nécessaire et applique, dans l'ordre,
+    // chaque étape de migration dont la version est supérieure à celle installée.
+    // Chaque étape est idempotente : elle peut être rejouée sans risque.
     public static function maybe_upgrade() {
         $installed = (string) get_option( 'flora_shop_version', '0' );
 
+        self::create_pages();
+        self::create_tables();
+        self::ensure_options();
+
+        if ( version_compare( $installed, '1.4.0', '<' ) ) {
+            self::upgrade_1_4_0();
+        }
+
         if ( version_compare( $installed, FLORA_SHOP_VERSION, '<' ) ) {
-            self::create_pages();
-            self::create_tables();
-            add_option( 'flora_shipping_methods', self::default_shipping_methods() );
-            add_option( 'flora_show_order_email', 1 );
             update_option( 'flora_shop_version', FLORA_SHOP_VERSION );
         }
     }
+
+    // Migration 1.4.0 : ajout des méthodes de livraison (domicile / bureau de liaison).
+    // Les colonnes et options associées sont créées par create_tables()/ensure_options(),
+    // cette étape prépare l'existant (valeurs de migration éventuelles).
+    private static function upgrade_1_4_0() {}
 
     // Recrée la table wilayas si elle est absente ou corrompue, et migre les colonnes wilaya_id → wilaya_code.
     private static function migrate_wilayas_table() {

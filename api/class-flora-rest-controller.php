@@ -76,6 +76,23 @@ class Flora_REST_Controller {
             ),
         ) );
 
+        // POST /cart/method — Enregistre la méthode de livraison choisie : 'home' (domicile) ou 'liaison' (bureau).
+        register_rest_route( $this->namespace, '/cart/method', array(
+            'methods'             => 'POST',
+            'callback'            => array( $this, 'set_shipping_method' ),
+            'permission_callback' => '__return_true',
+            'args'                => array(
+                'method' => array( 'required' => true, 'type' => 'string', 'enum' => array( 'home', 'liaison' ) ),
+            ),
+        ) );
+
+        // GET /shipping-methods — Liste des méthodes de livraison actives (alimente le sélecteur du checkout).
+        register_rest_route( $this->namespace, '/shipping-methods', array(
+            'methods'             => 'GET',
+            'callback'            => array( $this, 'get_shipping_methods' ),
+            'permission_callback' => '__return_true',
+        ) );
+
         // POST /checkout — Valide la commande ; nécessite le nonce « wp_rest » vérifié par check_nonce().
         register_rest_route( $this->namespace, '/checkout', array(
             'methods'             => 'POST',
@@ -203,6 +220,37 @@ class Flora_REST_Controller {
         ) );
     }
 
+    // set_shipping_method : mémorise la méthode de livraison (domicile ou bureau) dans le panier.
+    public function set_shipping_method( $request ) {
+        $method = $request->get_param( 'method' );
+
+        $result = Flora_Cart::set_shipping_method( $method );
+
+        if ( false === $result ) {
+            return new WP_Error( 'invalid_method', __( 'Méthode de livraison invalide.', 'flora-shop' ), array( 'status' => 400 ) );
+        }
+
+        return rest_ensure_response( array(
+            'success' => true,
+            'cart'    => Flora_Cart::get_cart_json(),
+        ) );
+    }
+
+    // get_shipping_methods : renvoie la liste des méthodes de livraison actives (clé, libellé, description).
+    public function get_shipping_methods( $request ) {
+        $methods = array();
+        foreach ( Flora_Helpers::flora_shipping_methods() as $key => $cfg ) {
+            if ( Flora_Helpers::is_method_enabled( $key ) ) {
+                $methods[] = array(
+                    'method'      => $key,
+                    'label'       => $cfg['label'],
+                    'description' => isset( $cfg['description'] ) ? $cfg['description'] : '',
+                );
+            }
+        }
+        return rest_ensure_response( $methods );
+    }
+
     // checkout : valide les informations de facturation puis lance le traitement de la commande (retour 201 si succès).
     public function checkout( $request ) {
         $params = $request->get_json_params();
@@ -212,7 +260,19 @@ class Flora_REST_Controller {
         }
 
         $billing = $params['billing'];
-        $required_fields = array( 'first_name', 'last_name', 'email', 'phone', 'address', 'wilaya_code' );
+
+        // Champ email requis uniquement si le formulaire l'affiche (option « Confirmation » active).
+        $show_email = (bool) get_option( 'flora_show_order_email', 1 );
+
+        // L'adresse est requise uniquement pour la livraison à domicile ; pour le
+        // bureau de liaison, seul le choix de la wilaya (tarif) est nécessaire.
+        $required_fields = array( 'full_name', 'phone', 'wilaya_code' );
+        if ( $show_email ) {
+            $required_fields[] = 'email';
+        }
+        if ( 'home' === Flora_Cart::get_shipping_method() ) {
+            $required_fields[] = 'address';
+        }
 
         foreach ( $required_fields as $field ) {
             if ( empty( $billing[ $field ] ) ) {
@@ -220,7 +280,7 @@ class Flora_REST_Controller {
             }
         }
 
-        if ( ! is_email( $billing['email'] ) ) {
+        if ( $show_email && ! empty( $billing['email'] ) && ! is_email( $billing['email'] ) ) {
             return new WP_Error( 'invalid_email', __( 'Adresse email invalide.', 'flora-shop' ), array( 'status' => 400 ) );
         }
 
@@ -247,6 +307,9 @@ class Flora_REST_Controller {
         }
 
         $details = $db->get_order_details( $order->id );
+
+        // L'email est retiré de la réponse publique s'il est masqué par la configuration admin.
+        $order->email = get_option( 'flora_show_order_email', 1 ) ? $order->email : '';
 
         return rest_ensure_response( array(
             'order'   => $order,

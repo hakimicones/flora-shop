@@ -1,4 +1,4 @@
-<?php /* Vue des paramètres du plugin : devise, seuil de livraison gratuite et règles de remises sur produits / panier. */ ?>
+<?php /* Vue des paramètres du plugin : devise, seuil de livraison gratuite, pages de la boutique et règles de remises sur produits / panier. */ ?>
 
 <div class="wrap flora-admin">
     <h1><?php esc_html_e( 'Paramètres Flora Shop', 'flora-shop' ); ?></h1>
@@ -22,6 +22,37 @@
                     <p class="description"><?php esc_html_e( 'Montant du sous-total pour bénéficier de la livraison gratuite (0 = désactivé).', 'flora-shop' ); ?></p>
                 </td>
             </tr>
+            <tr>
+                <th><?php esc_html_e( 'Confirmation', 'flora-shop' ); ?></th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="show_order_email" value="1" <?php checked( $show_order_email ); ?>>
+                        <?php esc_html_e( 'Afficher l\'email du client sur la page de confirmation', 'flora-shop' ); ?>
+                    </label>
+                </td>
+            </tr>
+        </table>
+
+        <?php /* --- Pages de la boutique : association de chaque étape à une page WordPress existante --- */ ?>
+        <h2><?php esc_html_e( 'Pages', 'flora-shop' ); ?></h2>
+        <p class="description"><?php esc_html_e( 'Sélectionnez la page associée à chaque étape de la boutique. Ces sélections remplacent les pages créées automatiquement.', 'flora-shop' ); ?></p>
+        <?php $all_pages_list = Flora_Helpers::get_all_pages(); ?>
+        <table class="form-table">
+            <?php foreach ( Flora_Helpers::flora_pages() as $pkey => $pinfo ) : ?>
+                <tr>
+                    <th><label for="flora_page_<?php echo esc_attr( $pkey ); ?>"><?php echo esc_html( $pinfo['title'] ); ?></label></th>
+                    <td>
+                        <select name="<?php echo esc_attr( 'flora_page[' . $pkey . ']' ); ?>" id="<?php echo esc_attr( 'flora_page_' . $pkey ); ?>">
+                            <option value="0"><?php esc_html_e( '— Aucune page —', 'flora-shop' ); ?></option>
+                            <?php echo walk_page_dropdown_tree( $all_pages_list, 0, array(
+                                'selected'    => $flora_pages[ $pkey ],
+                                'value_field' => 'ID',
+                            ) ); ?>
+                        </select>
+                        <p class="description"><?php echo esc_html( sprintf( __( 'Slug : %s — Shortcode : %s', 'flora-shop' ), $pinfo['slug'], $pinfo['shortcode'] ) ); ?></p>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
         </table>
 
         <?php /* --- Règles de remise par produit (tableau de lignes dynamiques) --- */ ?>

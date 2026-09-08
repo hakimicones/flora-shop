@@ -24,6 +24,9 @@ class Flora_Admin_Shipping {
         $wilayas  = $db->get_wilayas();
         $rates    = $db->get_all_shipping_rates();
 
+        // Configuration des méthodes de livraison (activation, libellés, descriptions).
+        $shipping_methods = Flora_Helpers::flora_shipping_methods();
+
         $wilaya_map = array();
         foreach ( $wilayas as $w ) {
             $wilaya_map[ $w->code ] = $w;
@@ -94,14 +97,33 @@ class Flora_Admin_Shipping {
         if ( 'save_rate' === $post_action ) {
             Flora_Helpers::verify_nonce( 'flora_save_rate' );
             // Sauvegarde / mise à jour d'un tarif : identifiants en absint, frais en sanitize_float.
+            // Chaque ligne porte les 2 rubriques : domicile (base + per_kg) et bureau de liaison (bureau_fee + bureau_per_kg).
             $data = array(
-                'wilaya_code' => absint( $_POST['wilaya_code'] ),
-                'commune_id'  => absint( $_POST['commune_id'] ),
-                'base_fee'    => Flora_Helpers::sanitize_float( $_POST['base_fee'] ),
-                'per_kg_fee'  => Flora_Helpers::sanitize_float( $_POST['per_kg_fee'] ),
+                'wilaya_code'        => absint( $_POST['wilaya_code'] ),
+                'commune_id'         => absint( $_POST['commune_id'] ),
+                'base_fee'           => Flora_Helpers::sanitize_float( $_POST['base_fee'] ),
+                'per_kg_fee'         => Flora_Helpers::sanitize_float( $_POST['per_kg_fee'] ),
+                'bureau_fee'         => Flora_Helpers::sanitize_float( $_POST['bureau_fee'] ),
+                'bureau_per_kg_fee'  => Flora_Helpers::sanitize_float( $_POST['bureau_per_kg_fee'] ),
             );
             $db->upsert_shipping_rate( $data );
             wp_safe_redirect( admin_url( 'admin.php?page=flora-shipping&tab=rates&flora_notice=shipping_saved' ) );
+            exit;
+        }
+
+        if ( 'save_shipping_methods' === $post_action ) {
+            Flora_Helpers::verify_nonce( 'flora_save_shipping_methods' );
+            // Sauvegarde de la configuration des méthodes de livraison (activation, libellés, descriptions).
+            $methods = Flora_Helpers::flora_shipping_methods();
+
+            foreach ( array_keys( $methods ) as $key ) {
+                $methods[ $key ]['enabled']     = ! empty( $_POST['shipping_methods'][ $key ]['enabled'] ) ? 1 : 0;
+                $methods[ $key ]['label']       = ! empty( $_POST['shipping_methods'][ $key ]['label'] ) ? Flora_Helpers::sanitize_text( $_POST['shipping_methods'][ $key ]['label'] ) : '';
+                $methods[ $key ]['description'] = ! empty( $_POST['shipping_methods'][ $key ]['description'] ) ? Flora_Helpers::sanitize_text( $_POST['shipping_methods'][ $key ]['description'] ) : '';
+            }
+
+            update_option( 'flora_shipping_methods', $methods );
+            wp_safe_redirect( admin_url( 'admin.php?page=flora-shipping&flora_notice=shipping_saved' ) );
             exit;
         }
 

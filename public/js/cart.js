@@ -47,11 +47,8 @@ jQuery(document).ready(function($) {
 
         floraApi('POST', 'cart/add', { type: type, id: id, quantity: qty })
             .done(function(response) {
-                showNotification(
-                    `${i18n.added} <a class="button" href="${floraShop.pageUrls.cart}">Voir mon panier</a> <a class="button" style="margin-left:10px;" href="${window.location.href}">Continuer mes achats</a>`,
-                    'success'
-                );
                 updateCartCount(response.cart.item_count);
+                openCartDrawer(response.cart);
                 renderCartPage(response.cart);
                 renderCheckoutSummary(response.cart);
             })
@@ -84,6 +81,8 @@ jQuery(document).ready(function($) {
         if (val > 1) {
             floraApi('POST', 'cart/update', { index: index, quantity: val - 1 })
                 .done(function(response) {
+                    updateCartCount(response.cart.item_count);
+                    renderCartDrawer(response.cart);
                     renderCartPage(response.cart);
                     renderCheckoutSummary(response.cart);
                 });
@@ -97,6 +96,8 @@ jQuery(document).ready(function($) {
         var val = parseInt($input.val()) || 1;
         floraApi('POST', 'cart/update', { index: index, quantity: val + 1 })
             .done(function(response) {
+                updateCartCount(response.cart.item_count);
+                renderCartDrawer(response.cart);
                 renderCartPage(response.cart);
                 renderCheckoutSummary(response.cart);
             });
@@ -107,6 +108,8 @@ jQuery(document).ready(function($) {
         var qty = parseInt($(this).val()) || 1;
         floraApi('POST', 'cart/update', { index: index, quantity: qty })
             .done(function(response) {
+                updateCartCount(response.cart.item_count);
+                renderCartDrawer(response.cart);
                 renderCartPage(response.cart);
                 renderCheckoutSummary(response.cart);
             });
@@ -119,6 +122,8 @@ jQuery(document).ready(function($) {
         floraApi('POST', 'cart/remove', { index: index })
             .done(function(response) {
                 showNotification(i18n.removed, 'success');
+                updateCartCount(response.cart.item_count);
+                renderCartDrawer(response.cart);
                 renderCartPage(response.cart);
                 renderCheckoutSummary(response.cart);
             });
@@ -129,6 +134,8 @@ jQuery(document).ready(function($) {
         if (confirm(i18n.confirm)) {
             floraApi('POST', 'cart/clear')
                 .done(function(response) {
+                    updateCartCount(response.cart.item_count);
+                    renderCartDrawer(response.cart);
                     renderCartPage(response.cart);
                     renderCheckoutSummary(response.cart);
                 });
@@ -233,6 +240,176 @@ function renderCartPromotions(cart) {
         $container.html(html);
     }
 
+    // ========== CART DRAWER (OFFCANVAS) ==========
+    function injectCartDrawer() {
+        if ($('#flora-cart-drawer').length) return;
+
+        var overlay = $('<div class="flora-cart-drawer-overlay"></div>');
+        var drawer = $('<aside id="flora-cart-drawer" role="dialog" aria-hidden="true" aria-label="' + i18n.cart_title + '"></aside>');
+        drawer.append(
+            '<div class="flora-drawer-header">' +
+            '<div class="flora-drawer-title"><h3>' + i18n.cart_title + ' <span class="flora-cart-count" style="display:none;">0</span></h3></div>' +
+            '<button type="button" class="flora-drawer-close" aria-label="' + i18n.close + '">✕</button>' +
+            '</div>' +
+            '<div class="flora-drawer-items" id="flora-cart-drawer-items"></div>' +
+            '<div class="flora-drawer-footer" id="flora-cart-drawer-footer"></div>'
+        );
+        $('body').append(overlay, drawer);
+    }
+
+    function renderCartDrawer(cart) {
+        var $items = $('#flora-cart-drawer-items');
+        var $footer = $('#flora-cart-drawer-footer');
+        if ($items.length === 0) return;
+
+        if (!cart) {
+            floraApi('GET', 'cart').done(function(data) { renderCartDrawer(data); });
+            return;
+        }
+
+        $items.empty();
+        $footer.empty();
+
+        if (!cart.items || cart.items.length === 0) {
+            $items.html(
+                '<div class="flora-drawer-empty">' +
+                '<p>' + (i18n.empty || 'Votre panier est vide.') + '</p>' +
+                '<a href="' + floraShop.pageUrls.shop + '" class="button button-primary">' + i18n.view_products + '</a>' +
+                '</div>'
+            );
+            return;
+        }
+
+        for (var i = 0; i < cart.items.length; i++) {
+            var item = cart.items[i];
+            var row = $('<div class="flora-drawer-item"></div>');
+            if (item.is_free) row.addClass('flora-drawer-free');
+            row.append('<div class="flora-drawer-item-info">' +
+                '<div class="flora-drawer-item-name">' + escapeHtml(item.name) +
+                (item.is_free ? ' <span class="flora-badge-free">GRATUIT</span>' : '') +
+                '</div>');
+            if (item.is_free) {
+                row.find('.flora-drawer-item-info').append('<div class="flora-drawer-item-qty">x' + item.quantity + '</div>');
+            } else {
+                row.find('.flora-drawer-item-info').append(
+                    '<div class="flora-drawer-item-qty">' +
+                    '<span>' + item.quantity + ' × ' + formatPrice(item.price) + '</span>' +
+                    '</div>'
+                );
+                row.find('.flora-drawer-item-info').append(
+                    '<div class="flora-qty-control">' +
+                    '<button type="button" class="flora-qty-minus-cart" data-index="' + item.index + '">−</button>' +
+                    '<input type="number" class="flora-qty-input-cart" data-index="' + item.index + '" value="' + item.quantity + '" min="1">' +
+                    '<button type="button" class="flora-qty-plus-cart" data-index="' + item.index + '">+</button>' +
+                    '</div>'
+                );
+            }
+            row.append('<div class="flora-drawer-item-price">' + (item.is_free ? 'Gratuit' : formatPrice(item.line_total)) + '</div>');
+            if (!item.is_free) {
+                row.append('<button type="button" class="flora-remove-item" data-index="' + item.index + '" title="Supprimer">✕</button>');
+            }
+            $items.append(row);
+        }
+
+        var footerHtml = '';
+        if (cart.totals) {
+            footerHtml += '<div class="flora-drawer-totals">';
+            footerHtml += '<div class="flora-drawer-total-row"><span>Sous-total</span><span>' + formatPrice(cart.totals.subtotal) + '</span></div>';
+            if (parseFloat(cart.totals.discount_total) > 0) {
+                footerHtml += '<div class="flora-drawer-total-row flora-discount-row"><span>Remises</span><span>- ' + formatPrice(cart.totals.discount_total) + '</span></div>';
+            }
+            footerHtml += '<div class="flora-drawer-total-row"><span>' + escapeHtml(getMethodLabel(cart)) + '</span><span>' + (parseFloat(cart.totals.shipping_fee) > 0 ? formatPrice(cart.totals.shipping_fee) : 'Gratuit') + '</span></div>';
+            footerHtml += '<div class="flora-drawer-total-row flora-drawer-grand-total"><span><strong>Total</strong></span><span><strong>' + formatPrice(cart.totals.total) + '</strong></span></div>';
+            footerHtml += '</div>';
+        }
+        footerHtml += '<div class="flora-drawer-actions">' +
+            '<a href="' + getCheckoutUrl() + '" class="button button-primary">' + i18n.place_order + '</a>' +
+            '<a href="' + floraShop.pageUrls.cart + '">' + i18n.view_cart + '</a>' +
+            '<a href="#" class="flora-clear-cart">' + i18n.clear + '</a>' +
+            '</div>';
+        $footer.html(footerHtml);
+    }
+
+    function openCartDrawer(cart) {
+        injectCartDrawer();
+        renderCartDrawer(cart);
+        $('#flora-cart-drawer').addClass('open').attr('aria-hidden', 'false');
+        $('.flora-cart-drawer-overlay').addClass('open');
+        $('body').addClass('flora-drawer-open');
+    }
+
+    function closeCartDrawer() {
+        $('#flora-cart-drawer').removeClass('open').attr('aria-hidden', 'true');
+        $('.flora-cart-drawer-overlay').removeClass('open');
+        $('body').removeClass('flora-drawer-open');
+    }
+
+    $(document).on('click', '.flora-cart-open', function(e) {
+        e.preventDefault();
+        openCartDrawer();
+    });
+
+    $(document).on('click', '.flora-cart-drawer-overlay', closeCartDrawer);
+    $(document).on('click', '.flora-drawer-close', closeCartDrawer);
+
+$(document).on('keydown', function(e) {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            closeCartDrawer();
+        }
+    });
+
+    // ========== SHIPPING METHOD ==========
+    function getMethodLabel(cart) {
+        var options = cart.shipping_options || [];
+        var current = cart.shipping_method || 'home';
+        for (var i = 0; i < options.length; i++) {
+            if (options[i].method === current) return options[i].label;
+        }
+        return 'Transport';
+    }
+
+    function toggleShippingFields(method) {
+        var isHome = method === 'home';
+        $('#flora-address-row').toggle(isHome);
+        $('#flora-commune-field').toggle(isHome);
+        $('#address').prop('required', isHome);
+    }
+
+    function renderShippingFees(cart) {
+        // Affiche le frais estimé sous chaque méthode uniquement si une wilaya est choisie.
+        if (!cart.wilaya_code || cart.wilaya_code <= 0) return;
+        var options = cart.shipping_options || [];
+        for (var i = 0; i < options.length; i++) {
+            var $radio = $('input[name="shipping_method"][value="' + options[i].method + '"]');
+            if ($radio.length === 0) continue;
+            var $label = $radio.closest('.flora-shipping-method');
+            $label.find('.flora-shipping-fee').remove();
+            var feeText = parseFloat(options[i].fee) > 0 ? formatPrice(options[i].fee) : 'Gratuit';
+            $label.find('small').first().after(' <span class="flora-shipping-fee">(' + feeText + ')</span>');
+        }
+    }
+
+    function syncShippingMethod(cart) {
+        var method = cart.shipping_method || 'home';
+        $('input[name="shipping_method"]').prop('checked', false);
+        $('input[name="shipping_method"][value="' + method + '"]').prop('checked', true);
+        toggleShippingFields(method);
+        renderShippingFees(cart);
+    }
+
+    $(document).on('change', 'input[name="shipping_method"]', function() {
+        var method = $(this).val();
+        toggleShippingFields(method);
+        floraApi('POST', 'cart/method', { method: method })
+            .done(function(response) {
+                renderCheckoutSummary(response.cart);
+                renderShippingFees(response.cart);
+            })
+            .fail(function() {
+                showNotification(i18n.error, 'error');
+            });
+    });
+
     // ========== CHECKOUT ==========
     $('#wilaya').on('change', function() {
         var wilayaId = $(this).val();
@@ -261,6 +438,7 @@ function renderCartPromotions(cart) {
         if (wilayaCode) {
             floraApi('POST', 'cart/location', { wilaya_code: parseInt(wilayaCode), commune_id: parseInt(communeId) })
                 .done(function(response) {
+                    syncShippingMethod(response.cart);
                     renderCheckoutSummary(response.cart);
                 });
         }
@@ -300,7 +478,9 @@ function renderCartPromotions(cart) {
                 html += '<tr class="flora-discount-row"><td>Remises</td><td>- ' + formatPrice(cart.totals.discount_total) + '</td></tr>';
             }
             if (parseFloat(cart.totals.shipping_fee) > 0) {
-                html += '<tr><td>Transport</td><td>' + formatPrice(cart.totals.shipping_fee) + '</td></tr>';
+                html += '<tr><td>' + escapeHtml(getMethodLabel(cart)) + '</td><td>' + formatPrice(cart.totals.shipping_fee) + '</td></tr>';
+            } else {
+                html += '<tr><td>' + escapeHtml(getMethodLabel(cart)) + '</td><td>Gratuit</td></tr>';
             }
             html += '<tr class="flora-total-row"><td><strong>Total</strong></td><td><strong>' + formatPrice(cart.totals.total) + '</strong></td></tr>';
             html += '</table>';
@@ -321,13 +501,13 @@ function renderCartPromotions(cart) {
         $btn.prop('disabled', true).text(i18n.processing);
 
         var billing = {
-            first_name: $form.find('#first_name').val(),
-            last_name: $form.find('#last_name').val(),
-            email: $form.find('#email').val(),
+            full_name: $form.find('#full_name').val(),
+            email: $form.find('#email').val() || '',
             phone: $form.find('#phone').val(),
-            address: $form.find('#address').val(),
+            address: $form.find('#address').val() || '',
             wilaya_code: parseInt($form.find('#wilaya').val()) || 0,
             commune_id: parseInt($form.find('#commune').val()) || 0,
+            shipping_method: $form.find('input[name="shipping_method"]:checked').val() || 'home',
             notes: $form.find('#notes').val()
         };
 
@@ -447,11 +627,13 @@ function renderCartPromotions(cart) {
     }
 
     // ========== INIT ==========
+    injectCartDrawer();
     renderCartPage();
     renderCheckoutSummary();
     initRecap();
 
     floraApi('GET', 'cart').done(function(data) {
         updateCartCount(data.item_count);
+        syncShippingMethod(data);
     });
 });

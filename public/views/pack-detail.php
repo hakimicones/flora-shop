@@ -6,11 +6,12 @@
 <div class="flora-shop-wrap">
     <!-- En-tête : retour à la boutique et lien vers le panier. -->
     <div class="flora-shop-header-actions">
-        <a href="<?php echo esc_url( get_permalink( FLORA_SHOP_PAGE_ID ) ); ?>" class="flora-header-cart-link">
+        <a href="<?php echo esc_url( Flora_Helpers::get_page_url( 'shop' ) ); ?>" class="flora-header-cart-link">
             <span class="dashicons dashicons-arrow-left-alt"></span> <?php esc_html_e( 'Retour à la boutique', 'flora-shop' ); ?>
         </a>
-        <a href="<?php echo esc_url( get_permalink( FLORA_CART_PAGE_ID ) ); ?>" class="flora-header-cart-link">
+        <a href="<?php echo esc_url( Flora_Helpers::get_page_url( 'cart' ) ); ?>" class="flora-header-cart-link flora-cart-open">
             <span class="dashicons dashicons-cart"></span> <?php esc_html_e( 'Mon panier', 'flora-shop' ); ?>
+            <span class="flora-cart-count" style="display:none;">0</span>
         </a>
     </div>
 

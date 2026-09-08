@@ -8,8 +8,9 @@
     <h2><?php esc_html_e( 'Nos Produits', 'flora-shop' ); ?></h2>
 
     <div class="flora-shop-header-actions">
-        <a href="<?php echo esc_url( get_permalink( FLORA_CART_PAGE_ID ) ); ?>" class="flora-header-cart-link">
+        <a href="<?php echo esc_url( Flora_Helpers::get_page_url( 'cart' ) ); ?>" class="flora-header-cart-link flora-cart-open">
             <span class="dashicons dashicons-cart"></span> Mon panier
+            <span class="flora-cart-count" style="display:none;">0</span>
         </a>
     </div>
 
@@ -17,7 +18,7 @@
     <?php if ( ! empty( $products ) ) : ?>
         <div class="flora-products-grid">
             <?php foreach ( $products as $p ) :
-                    $product_detail_url = add_query_arg( 'flora_product', $p->slug, get_permalink( FLORA_PRODUCT_PAGE_ID ) );
+                    $product_detail_url = add_query_arg( 'flora_product', $p->slug, Flora_Helpers::get_page_url( 'product' ) );
                 ?>
                 <div class="flora-product-card" data-product-id="<?php echo esc_attr( $p->id ); ?>">
                     <a href="<?php echo esc_url( $product_detail_url ); ?>" class="flora-product-image-link">
@@ -68,7 +69,7 @@
         <h2 class="flora-section-title"><?php esc_html_e( 'Nos Packs', 'flora-shop' ); ?></h2>
         <div class="flora-products-grid">
             <?php foreach ( $packs as $pk ) :
-                    $pack_detail_url = add_query_arg( 'flora_pack', $pk->slug, get_permalink( FLORA_PRODUCT_PAGE_ID ) );
+                    $pack_detail_url = add_query_arg( 'flora_pack', $pk->slug, Flora_Helpers::get_page_url( 'product' ) );
                     $pack_products_list = $db->get_pack_products( $pk->id );
                 ?>
                 <div class="flora-product-card flora-pack-card" data-pack-id="<?php echo esc_attr( $pk->id ); ?>">

@@ -24,6 +24,13 @@ class Flora_Admin_Settings {
         $free_shipping_threshold = get_option( 'flora_free_shipping_threshold', 0 );
         $product_discounts       = get_option( 'flora_product_discounts', array() );
         $cart_discounts          = get_option( 'flora_cart_discounts', array() );
+        $show_order_email        = get_option( 'flora_show_order_email', 1 );
+
+        // Pages associées à chaque étape de la boutique (IDs résolus par les helpers).
+        $flora_pages = array();
+        foreach ( Flora_Helpers::flora_pages() as $key => $page ) {
+            $flora_pages[ $key ] = Flora_Helpers::get_page_id( $key );
+        }
 
         $db          = Flora_DB::get_instance();
         $all_products = $db->get_products();
@@ -45,6 +52,9 @@ class Flora_Admin_Settings {
             // Enregistrement des options simples, valeurs assainies avant écriture.
             update_option( 'flora_currency', Flora_Helpers::sanitize_text( $_POST['currency'] ) );
             update_option( 'flora_free_shipping_threshold', Flora_Helpers::sanitize_float( $_POST['free_shipping_threshold'] ) );
+
+            // Affichage de l'email du client sur la page de confirmation (case à cocher : absent = 0).
+            update_option( 'flora_show_order_email', empty( $_POST['show_order_email'] ) ? 0 : 1 );
 
             // Remises produits : tableau revalidé ligne par ligne ; chaque entrée doit
             // fournir product_id, min_qty et percent non vides, convertis en entiers.
@@ -75,6 +85,14 @@ class Flora_Admin_Settings {
                 }
             }
             update_option( 'flora_cart_discounts', $cart_discounts );
+
+            // Pages : enregistrement des identifiants sélectionnés (assainis en entiers).
+            if ( isset( $_POST['flora_page'] ) && is_array( $_POST['flora_page'] ) ) {
+                foreach ( Flora_Helpers::flora_pages() as $key => $page ) {
+                    $page_id = isset( $_POST['flora_page'][ $key ] ) ? absint( $_POST['flora_page'][ $key ] ) : 0;
+                    update_option( 'flora_page_' . $key, $page_id );
+                }
+            }
 
             wp_safe_redirect( admin_url( 'admin.php?page=flora-settings&flora_notice=settings_saved' ) );
             exit;

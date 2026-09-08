@@ -22,6 +22,7 @@ class Flora_Public {
         add_shortcode( 'flora_order_confirm', array( $this, 'shortcode_order_confirm' ) );
 
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+        add_action( 'template_redirect', array( $this, 'no_cache_confirm' ) );
     }
 
     // enqueue_assets : charge CSS/JS uniquement sur les pages contenant un shortcode du plugin, puis localise la config (URLs, nonce, traductions) pour cart.js.
@@ -42,20 +43,27 @@ class Flora_Public {
             'restUrl' => rest_url( 'flora-shop/v1/' ),
             'nonce'   => wp_create_nonce( 'wp_rest' ),
             'pageUrls' => array(
-                'checkout'      => get_permalink( FLORA_CHECKOUT_PAGE_ID ),
-                'orderConfirm'  => get_permalink( FLORA_ORDER_CONFIRM_PAGE_ID ),
-                'cart'          => get_permalink( FLORA_CART_PAGE_ID ),
-                'shop'          => get_permalink( FLORA_SHOP_PAGE_ID ),
-                'product'       => get_permalink( FLORA_PRODUCT_PAGE_ID ),
+                'checkout'      => Flora_Helpers::get_page_url( 'checkout' ),
+                'orderConfirm'  => Flora_Helpers::get_page_url( 'order_confirm' ),
+                'cart'          => Flora_Helpers::get_page_url( 'cart' ),
+                'shop'          => Flora_Helpers::get_page_url( 'shop' ),
+                'product'       => Flora_Helpers::get_page_url( 'product' ),
             ),
             'i18n'    => array(
-                'added'      => __( 'Ajouté au panier !', 'flora-shop' ),
-                'updated'    => __( 'Panier mis à jour.', 'flora-shop' ),
-                'removed'    => __( 'Article retiré.', 'flora-shop' ),
-                'error'      => __( 'Une erreur est survenue.', 'flora-shop' ),
-                'confirm'    => __( 'Voulez-vous vraiment vider le panier ?', 'flora-shop' ),
-                'processing' => __( 'Traitement en cours...', 'flora-shop' ),
-                'added_free' => __( 'Article offert ajouté', 'flora-shop' ),
+                'added'         => __( 'Ajouté au panier !', 'flora-shop' ),
+                'updated'       => __( 'Panier mis à jour.', 'flora-shop' ),
+                'removed'       => __( 'Article retiré.', 'flora-shop' ),
+                'error'         => __( 'Une erreur est survenue.', 'flora-shop' ),
+                'confirm'       => __( 'Voulez-vous vraiment vider le panier ?', 'flora-shop' ),
+                'processing'    => __( 'Traitement en cours...', 'flora-shop' ),
+                'added_free'    => __( 'Article offert ajouté', 'flora-shop' ),
+                'empty'         => __( 'Votre panier est vide.', 'flora-shop' ),
+                'cart_title'    => __( 'Mon panier', 'flora-shop' ),
+                'close'         => __( 'Fermer', 'flora-shop' ),
+                'place_order'   => __( 'Passer la commande', 'flora-shop' ),
+                'view_cart'     => __( 'Voir le panier complet', 'flora-shop' ),
+                'view_products' => __( 'Voir les produits', 'flora-shop' ),
+                'clear'         => __( 'Vider le panier', 'flora-shop' ),
             ),
         ) );
     }
@@ -195,14 +203,25 @@ class Flora_Public {
         return ob_get_clean();
     }
 
-    // shortcode_checkout : récupère les wilayas puis affiche le formulaire de commande (view checkout).
+    // shortcode_checkout : récupère les wilayas et les méthodes de livraison, puis affiche le formulaire de commande (view checkout).
     public function shortcode_checkout() {
-        $db      = Flora_DB::get_instance();
-        $wilayas = $db->get_wilayas();
+        $db              = Flora_DB::get_instance();
+        $wilayas         = $db->get_wilayas();
+        $shipping_methods = Flora_Helpers::flora_shipping_methods();
 
         ob_start();
         include FLORA_SHOP_PATH . 'public/views/checkout.php';
         return ob_get_clean();
+    }
+
+    // Entête anti-cache sur la page de confirmation : contient des données personnelles
+    // (email, adresse) dont l'affichage est conditionnel selon la configuration admin.
+    // Envoi via template_redirect (avant toute sortie HTML) pour être effectif.
+    public function no_cache_confirm() {
+        $confirm_id = Flora_Helpers::get_page_id( 'order_confirm' );
+        if ( $confirm_id && is_page( $confirm_id ) ) {
+            nocache_headers();
+        }
     }
 
     // shortcode_order_confirm : charge la commande par son numéro (paramètre « order ») puis affiche la confirmation (view order-confirmation).

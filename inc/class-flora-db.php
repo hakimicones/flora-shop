@@ -272,7 +272,7 @@ class Flora_DB {
         return $wpdb->delete( $table, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
-    // Récupère le tarif de livraison : d'abord celui de la commune, sinon celui de la wilaya. Retourne un objet ligne ou null.
+    // Récupère le tarif de livraison à domicile : d'abord celui de la commune, sinon celui de la wilaya. Retourne un objet ligne ou null.
     public function get_shipping_rate( $wilaya_code, $commune_id = 0 ) {
         global $wpdb;
         $table = $this->table( 'shipping_rates' );
@@ -287,6 +287,14 @@ class Flora_DB {
         return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE wilaya_code = %d AND commune_id = 0", absint( $wilaya_code ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
+    // Récupère le tarif « bureau de liaison » d'une wilaya (ligne wilaya, commune_id = 0).
+    // Retourne un objet ligne ou null. Permet de lire bureau_fee et bureau_per_kg_fee.
+    public function get_liaison_rate( $wilaya_code ) {
+        global $wpdb;
+        $table = $this->table( 'shipping_rates' );
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE wilaya_code = %d AND commune_id = 0", absint( $wilaya_code ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
     // Récupère l'ensemble des tarifs de livraison. Retourne un tableau d'objets.
     public function get_all_shipping_rates() {
         global $wpdb;
@@ -294,19 +302,18 @@ class Flora_DB {
         return $wpdb->get_results( "SELECT * FROM {$table} ORDER BY id ASC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
-    // Insère un tarif de livraison, ou le met à jour s'il existe déjà pour la wilaya/commune. Retourne l'ID ou le nombre de lignes affectées.
+    // Insère un tarif de livraison, ou le met à jour s'il existe déjà pour la wilaya/commune.
+    // Les quatre champs (domicile + bureau) sont écrits sur la même ligne. Retourne l'ID ou le nombre de lignes affectées.
     public function upsert_shipping_rate( $data ) {
         global $wpdb;
         $table = $this->table( 'shipping_rates' );
 
-        $where = array( 'wilaya_code' => absint( $data['wilaya_code'] ) );
-        if ( ! empty( $data['commune_id'] ) ) {
-            $where['commune_id'] = absint( $data['commune_id'] );
-        } else {
-            $where['commune_id'] = 0;
-        }
+        $data['wilaya_code'] = absint( $data['wilaya_code'] );
+        $data['commune_id']  = ! empty( $data['commune_id'] ) ? absint( $data['commune_id'] ) : 0;
+        $data['bureau_fee']  = (float) $data['bureau_fee'];
+        $data['bureau_per_kg_fee'] = (float) $data['bureau_per_kg_fee'];
 
-        $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE wilaya_code = %d AND commune_id = %d", $where['wilaya_code'], $where['commune_id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE wilaya_code = %d AND commune_id = %d", $data['wilaya_code'], $data['commune_id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
         if ( $exists ) {
             return $wpdb->update( $table, $data, array( 'id' => $exists ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery

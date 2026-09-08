@@ -37,10 +37,17 @@ class Flora_Cart {
 
         if ( ! $cart ) {
             $cart = array(
-                'items'       => array(),
-                'wilaya_code' => 0,
-                'commune_id'  => 0,
+                'items'           => array(),
+                'wilaya_code'     => 0,
+                'commune_id'      => 0,
+                'shipping_method' => self::default_method(),
             );
+        }
+
+        // Panier d'ancienne génération sans méthode : on attribue la méthode active par défaut.
+        if ( empty( $cart['shipping_method'] ) || ! Flora_Helpers::is_method_enabled( $cart['shipping_method'] ) ) {
+            $cart['shipping_method'] = self::default_method();
+            self::save_cart( $cart );
         }
 
         if ( isset( $cart['wilaya_id'] ) && ! isset( $cart['wilaya_code'] ) ) {
@@ -222,12 +229,43 @@ class Flora_Cart {
         return $cart;
     }
 
+    // Définit la méthode de livraison du panier (domicile ou bureau de liaison),
+    // puis recalcule les totaux. Retourne le panier, ou false si la méthode est inconnue/désactivée.
+    public static function set_shipping_method( $method ) {
+        if ( ! Flora_Helpers::is_method_enabled( $method ) ) {
+            return false;
+        }
+
+        $cart = self::ensure_cart();
+        $cart['shipping_method'] = $method;
+        self::save_cart( $cart );
+        self::recalculate();
+        return $cart;
+    }
+
+    // Retourne la méthode de livraison active du panier (ou celle par défaut).
+    public static function get_shipping_method() {
+        $cart = self::ensure_cart();
+        return isset( $cart['shipping_method'] ) && Flora_Helpers::is_method_enabled( $cart['shipping_method'] ) ? $cart['shipping_method'] : self::default_method();
+    }
+
+    // Retourne la première méthode de livraison active ('home' en dernier recours).
+    private static function default_method() {
+        foreach ( Flora_Helpers::flora_shipping_methods() as $key => $cfg ) {
+            if ( Flora_Helpers::is_method_enabled( $key ) ) {
+                return $key;
+            }
+        }
+        return 'home';
+    }
+
     // Réinitialise le panier et supprime le cookie côté client.
     public static function clear() {
         $empty_cart = array(
-            'items'       => array(),
-            'wilaya_code' => 0,
-            'commune_id'  => 0,
+            'items'           => array(),
+            'wilaya_code'     => 0,
+            'commune_id'      => 0,
+            'shipping_method' => self::default_method(),
         );
 
         self::save_cart( $empty_cart );
@@ -542,30 +580,75 @@ class Flora_Cart {
         return $discount_total;
     }
 
-    // Calcule les frais de livraison (gratuit si seuil atteint, sinon base + poids) ; retourne le montant.
+    // Calcule les frais de livraison selon la méthode du panier (gratuit si seuil atteint).
+    // Le seuil de livraison gratuite s'applique aux deux méthodes.
     private static function calculate_shipping( $cart, $total_weight ) {
         $free_threshold = (float) get_option( 'flora_free_shipping_threshold', 0 );
 
-        $totals  = isset( $cart['totals'] ) ? $cart['totals'] : array();
+        $totals   = isset( $cart['totals'] ) ? $cart['totals'] : array();
         $subtotal = isset( $totals['subtotal'] ) ? $totals['subtotal'] : 0;
 
         if ( $free_threshold > 0 && $subtotal >= $free_threshold ) {
             return 0;
         }
 
+        $method = isset( $cart['shipping_method'] ) ? $cart['shipping_method'] : self::default_method();
+
+        return self::shipping_fee_for( $cart, $method, $total_weight );
+    }
+
+    // Calcule le tarif de transport d'une méthode précise sans appliquer le seuil gratuit.
+    // « home » : base + per_kg (commune si définie, sinon wilaya) ;
+    // « liaison » : bureau_fee + bureau_per_kg (ligne wilaya uniquement).
+    private static function shipping_fee_for( $cart, $method, $total_weight ) {
         if ( empty( $cart['wilaya_code'] ) || $cart['wilaya_code'] <= 0 ) {
             return 0;
         }
 
-        $db   = Flora_DB::get_instance();
-        $rate = $db->get_shipping_rate( $cart['wilaya_code'], $cart['commune_id'] );
+        $db = Flora_DB::get_instance();
 
+        if ( 'liaison' === $method ) {
+            $rate = $db->get_liaison_rate( $cart['wilaya_code'] );
+            if ( ! $rate ) {
+                return 0;
+            }
+            return (float) $rate->bureau_fee + ( $total_weight * (float) $rate->bureau_per_kg_fee );
+        }
+
+        $rate = $db->get_shipping_rate( $cart['wilaya_code'], $cart['commune_id'] );
         if ( ! $rate ) {
             return 0;
         }
 
-        $fee = (float) $rate->base_fee + ( $total_weight * (float) $rate->per_kg_fee );
-        return $fee;
+        return (float) $rate->base_fee + ( $total_weight * (float) $rate->per_kg_fee );
+    }
+
+    // Liste des méthodes de livraison actives avec leur libellé, description et frais
+    // estimés pour la wilaya actuelle du panier (0 si livraison gratuite ou wilaya manquante).
+    private static function shipping_options() {
+        $cart           = self::ensure_cart();
+        $totals         = self::get_totals();
+        $weight         = isset( $totals['total_weight'] ) ? (float) $totals['total_weight'] : 0;
+        $free_threshold = (float) get_option( 'flora_free_shipping_threshold', 0 );
+        $free           = $free_threshold > 0 && $totals['subtotal'] >= $free_threshold;
+
+        $options = array();
+        foreach ( Flora_Helpers::flora_shipping_methods() as $key => $cfg ) {
+            if ( ! Flora_Helpers::is_method_enabled( $key ) ) {
+                continue;
+            }
+
+            $fee = $free ? 0 : self::shipping_fee_for( $cart, $key, $weight );
+
+            $options[] = array(
+                'method'      => $key,
+                'label'       => $cfg['label'],
+                'description' => isset( $cfg['description'] ) ? $cfg['description'] : '',
+                'fee'         => round( $fee, 2 ),
+            );
+        }
+
+        return $options;
     }
 
     // Traite la validation de commande : crée la commande en base, insère les lignes, décrémente le stock, vide le panier.
@@ -588,19 +671,20 @@ class Flora_Cart {
         $items_to_save = $cart['items'];
 
         $order_data = array(
-            'order_number'   => Flora_Helpers::generate_order_number(),
-            'customer_name'  => Flora_Helpers::sanitize_text( $billing_data['first_name'] . ' ' . $billing_data['last_name'] ),
-            'email'          => Flora_Helpers::sanitize_email( $billing_data['email'] ),
-            'phone'          => Flora_Helpers::sanitize_text( $billing_data['phone'] ),
-            'address'        => Flora_Helpers::sanitize_text( $billing_data['address'] ),
-            'wilaya_code'    => $cart['wilaya_code'],
-            'commune_id'     => $cart['commune_id'],
-            'subtotal'       => $totals['subtotal'],
-            'discount_total' => $totals['discount_total'],
-            'shipping_fee'   => $totals['shipping_fee'],
-            'total'          => $totals['total'],
-            'status'         => 'pending',
-            'notes'          => isset( $billing_data['notes'] ) ? Flora_Helpers::sanitize_text( $billing_data['notes'] ) : '',
+            'order_number'    => Flora_Helpers::generate_order_number(),
+            'customer_name'   => Flora_Helpers::sanitize_text( $billing_data['full_name'] ),
+            'email'           => ! empty( $billing_data['email'] ) ? Flora_Helpers::sanitize_email( $billing_data['email'] ) : '',
+            'phone'           => Flora_Helpers::sanitize_text( $billing_data['phone'] ),
+            'address'         => ! empty( $billing_data['address'] ) ? Flora_Helpers::sanitize_text( $billing_data['address'] ) : '',
+            'wilaya_code'     => $cart['wilaya_code'],
+            'commune_id'      => $cart['commune_id'],
+            'shipping_method' => isset( $cart['shipping_method'] ) ? $cart['shipping_method'] : 'home',
+            'subtotal'        => $totals['subtotal'],
+            'discount_total'  => $totals['discount_total'],
+            'shipping_fee'    => $totals['shipping_fee'],
+            'total'           => $totals['total'],
+            'status'          => 'pending',
+            'notes'           => isset( $billing_data['notes'] ) ? Flora_Helpers::sanitize_text( $billing_data['notes'] ) : '',
         );
 
         $order_id = $db->insert_order( $order_data );
@@ -725,12 +809,14 @@ class Flora_Cart {
         }
 
         return array(
-            'items'       => $items,
-            'item_count'  => self::get_count(),
-            'totals'      => $totals,
-            'promotions'  => $promotions,
-            'wilaya_code' => $cart['wilaya_code'],
-            'commune_id'  => $cart['commune_id'],
+            'items'            => $items,
+            'item_count'       => self::get_count(),
+            'totals'           => $totals,
+            'promotions'       => $promotions,
+            'wilaya_code'      => $cart['wilaya_code'],
+            'commune_id'       => $cart['commune_id'],
+            'shipping_method'  => isset( $cart['shipping_method'] ) ? $cart['shipping_method'] : self::default_method(),
+            'shipping_options' => self::shipping_options(),
         );
     }
 }

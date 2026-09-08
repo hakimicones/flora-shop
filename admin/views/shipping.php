@@ -3,6 +3,43 @@
 <div class="wrap flora-admin">
     <h1><?php esc_html_e( 'Gestion du transport', 'flora-shop' ); ?></h1>
 
+    <?php /* --- Configuration des deux méthodes de livraison : activation, libellé et description --- */ ?>
+    <div class="flora-card" style="background:#f6f7f7;border-left:4px solid #46b450;margin-bottom:15px;">
+        <form method="post">
+            <?php Flora_Helpers::wpnonce_field( 'flora_save_shipping_methods' ); ?>
+            <input type="hidden" name="flora_action" value="save_shipping_methods">
+            <h3 style="margin-top:0;"><?php esc_html_e( 'Méthodes de livraison', 'flora-shop' ); ?></h3>
+            <p><?php esc_html_e( 'Activez les méthodes proposées au client lors de la commande et personnalisez leur libellé et description.', 'flora-shop' ); ?></p>
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th style="width:70px;"><?php esc_html_e( 'Activée', 'flora-shop' ); ?></th>
+                        <th style="width:45%;"><?php esc_html_e( 'Libellé', 'flora-shop' ); ?></th>
+                        <th><?php esc_html_e( 'Description', 'flora-shop' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $shipping_methods as $key => $cfg ) : ?>
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="shipping_methods[<?php echo esc_attr( $key ); ?>][enabled]" value="1" <?php checked( ! empty( $cfg['enabled'] ) ); ?>>
+                            </td>
+                            <td>
+                                <input type="text" class="regular-text" name="shipping_methods[<?php echo esc_attr( $key ); ?>][label]" value="<?php echo esc_attr( $cfg['label'] ); ?>">
+                            </td>
+                            <td>
+                                <input type="text" class="large-text" name="shipping_methods[<?php echo esc_attr( $key ); ?>][description]" value="<?php echo esc_attr( $cfg['description'] ); ?>">
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <p style="margin:10px 0 0;">
+                <button type="submit" class="button button-primary"><?php esc_html_e( 'Enregistrer les méthodes', 'flora-shop' ); ?></button>
+            </p>
+        </form>
+    </div>
+
     <?php /* --- Onglets de navigation entre wilayas, communes et tarifs --- */ ?>
     <h2 class="nav-tab-wrapper">
         <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-shipping&tab=wilayas' ) ); ?>" class="nav-tab <?php echo 'wilayas' === $tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Wilayas', 'flora-shop' ); ?></a>
@@ -193,25 +230,35 @@
                     </select>
                 </div>
                 <div>
-                    <label><?php esc_html_e( 'Frais fixe', 'flora-shop' ); ?></label><br>
+                    <label><?php esc_html_e( 'Frais fixe (domicile)', 'flora-shop' ); ?></label><br>
                     <input type="number" step="0.01" name="base_fee" class="small-text" required value="0.00">
                 </div>
                 <div>
-                    <label><?php esc_html_e( 'Frais par kg', 'flora-shop' ); ?></label><br>
+                    <label><?php esc_html_e( 'Frais/kg (domicile)', 'flora-shop' ); ?></label><br>
                     <input type="number" step="0.01" name="per_kg_fee" class="small-text" required value="0.00">
+                </div>
+                <div>
+                    <label><?php esc_html_e( 'Frais fixe (bureau liaison)', 'flora-shop' ); ?></label><br>
+                    <input type="number" step="0.01" name="bureau_fee" class="small-text" required value="0.00">
+                </div>
+                <div>
+                    <label><?php esc_html_e( 'Frais/kg (bureau liaison)', 'flora-shop' ); ?></label><br>
+                    <input type="number" step="0.01" name="bureau_per_kg_fee" class="small-text" required value="0.00">
                 </div>
                 <div><button type="submit" class="button button-primary"><?php esc_html_e( 'Enregistrer', 'flora-shop' ); ?></button></div>
             </form>
         </div>
 
-        <?php /* --- Tableau des tarifs enregistrés --- */ ?>
+        <?php /* --- Tableau des tarifs enregistrés (wilaya/commune avec rubriques domicile et bureau) --- */ ?>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
                     <th><?php esc_html_e( 'Wilaya', 'flora-shop' ); ?></th>
                     <th><?php esc_html_e( 'Commune', 'flora-shop' ); ?></th>
-                    <th><?php esc_html_e( 'Frais fixe', 'flora-shop' ); ?></th>
-                    <th><?php esc_html_e( 'Frais/kg', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Frais fixe (domicile)', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Frais/kg (domicile)', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Frais fixe (bureau)', 'flora-shop' ); ?></th>
+                    <th><?php esc_html_e( 'Frais/kg (bureau)', 'flora-shop' ); ?></th>
                     <th style="width:150px;"><?php esc_html_e( 'Actions', 'flora-shop' ); ?></th>
                 </tr>
             </thead>
@@ -227,7 +274,7 @@
 
                 if ( empty( $rates ) ) :
                 ?>
-                    <tr><td colspan="5"><?php esc_html_e( 'Aucun tarif configuré.', 'flora-shop' ); ?></td></tr>
+                    <tr><td colspan="7"><?php esc_html_e( 'Aucun tarif configuré.', 'flora-shop' ); ?></td></tr>
                 <?php else : ?>
                     <?php foreach ( $rates as $r ) :
                         $w_name = isset( $wilaya_map[ $r->wilaya_code ] ) ? $wilaya_map[ $r->wilaya_code ]->name : $r->wilaya_code;
@@ -238,6 +285,8 @@
                             <td><?php echo esc_html( $c_name ); ?></td>
                             <td><?php echo esc_html( Flora_Helpers::format_price( $r->base_fee ) ); ?></td>
                             <td><?php echo esc_html( Flora_Helpers::format_price( $r->per_kg_fee ) ); ?></td>
+                            <td><?php echo esc_html( Flora_Helpers::format_price( $r->bureau_fee ) ); ?></td>
+                            <td><?php echo esc_html( Flora_Helpers::format_price( $r->bureau_per_kg_fee ) ); ?></td>
                             <td>
                                 <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Supprimer ce tarif ?', 'flora-shop' ); ?>');">
                                     <?php wp_nonce_field( 'flora_delete_rate', '_flora_nonce' ); ?>

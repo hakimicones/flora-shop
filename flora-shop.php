@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Flora Shop
  * Plugin URI: https://flora-shop.dz
- * Description: Solution e-commerce complète avec gestion de produits, packs, promotions BXGY, transport dynamique (Wilaya/Commune).
- * Version: 1.2.0
+ * Description: Solution e-commerce complète avec gestion de produits, packs, promotions BXGY, transport dynamique (Wilaya/Commune) et deux méthodes de livraison.
+ * Version: 1.4.0
  * Author: icones software
  * Author URI: https://icones-software.dz
  * License: GPL v2 or later
@@ -19,17 +19,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes globales : version, chemins et basename du plugin.
-define( 'FLORA_SHOP_VERSION', '1.2.0' );
+define( 'FLORA_SHOP_VERSION', '1.4.0' );
 define( 'FLORA_SHOP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FLORA_SHOP_URL', plugin_dir_url( __FILE__ ) );
 define( 'FLORA_SHOP_BASENAME', plugin_basename( __FILE__ ) );
-
-// Identifiants des pages e-commerce créées par le plugin.
-define( 'FLORA_SHOP_PAGE_ID', 7157 );       // Page catalogue / boutique
-define( 'FLORA_CHECKOUT_PAGE_ID', 7159 );   // Page paiement
-define( 'FLORA_ORDER_CONFIRM_PAGE_ID', 7160 ); // Page confirmation de commande
-define( 'FLORA_CART_PAGE_ID', 7158 );       // Page panier
-define( 'FLORA_PRODUCT_PAGE_ID', 7161 );    // Page produit individuel
 
 // Chargement des fichiers communs (helpers, BDD, panier, activator, importateur).
 require_once FLORA_SHOP_PATH . 'inc/class-flora-helpers.php';

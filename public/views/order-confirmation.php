@@ -26,8 +26,13 @@
                 <h3><?php esc_html_e( 'Détails de la commande', 'flora-shop' ); ?></h3>
                 <table class="flora-confirm-table">
                     <tr><td><?php esc_html_e( 'Nom', 'flora-shop' ); ?></td><td><?php echo esc_html( $order->customer_name ); ?></td></tr>
-                    <tr><td><?php esc_html_e( 'Email', 'flora-shop' ); ?></td><td><?php echo esc_html( $order->email ); ?></td></tr>
-                    <tr><td><?php esc_html_e( 'Adresse', 'flora-shop' ); ?></td><td><?php echo esc_html( $order->address ); ?></td></tr>
+                    <?php if ( get_option( 'flora_show_order_email', 1 ) ) : ?>
+                        <tr><td><?php esc_html_e( 'Email', 'flora-shop' ); ?></td><td><?php echo esc_html( $order->email ); ?></td></tr>
+                    <?php endif; ?>
+                    <tr><td><?php esc_html_e( 'Méthode de livraison', 'flora-shop' ); ?></td><td><?php echo esc_html( Flora_Helpers::shipping_method_label( $order->shipping_method ) ? Flora_Helpers::shipping_method_label( $order->shipping_method ) : $order->shipping_method ); ?></td></tr>
+                    <?php if ( ! empty( $order->address ) ) : ?>
+                        <tr><td><?php esc_html_e( 'Adresse', 'flora-shop' ); ?></td><td><?php echo esc_html( $order->address ); ?></td></tr>
+                    <?php endif; ?>
                 </table>
             </div>
 

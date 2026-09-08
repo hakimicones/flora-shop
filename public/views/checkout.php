@@ -12,31 +12,49 @@
             <form id="flora-checkout-form">
                 <h3><?php esc_html_e( 'Informations de livraison', 'flora-shop' ); ?></h3>
 
-                <!-- Identité du client : prénom, nom, email et téléphone (champs requis). -->
-
-                <div class="flora-form-row flora-form-col-2">
+                <!-- Choix de la méthode de livraison : domicile ou bureau de liaison (radio). -->
+                <div class="flora-form-row">
                     <div class="flora-form-field">
-                        <label for="first_name"><?php esc_html_e( 'Prénom', 'flora-shop' ); ?> *</label>
-                        <input type="text" id="first_name" name="first_name" required>
+                        <label><?php esc_html_e( 'Méthode de livraison', 'flora-shop' ); ?> *</label>
+                        <div class="flora-shipping-methods" id="flora-shipping-methods">
+                            <?php foreach ( $shipping_methods as $skey => $scfg ) : ?>
+                                <?php if ( ! Flora_Helpers::is_method_enabled( $skey ) ) { continue; } ?>
+                                <label class="flora-shipping-method">
+                                    <input type="radio" name="shipping_method" value="<?php echo esc_attr( $skey ); ?>" <?php checked( 'home' === $skey ); ?>>
+                                    <span>
+                                        <strong><?php echo esc_html( $scfg['label'] ); ?></strong>
+                                        <?php if ( ! empty( $scfg['description'] ) ) : ?>
+                                            <small><?php echo esc_html( $scfg['description'] ); ?></small>
+                                        <?php endif; ?>
+                                    </span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Identité du client : nom complet, email et téléphone (champs requis). -->
+                <div class="flora-form-row">
                     <div class="flora-form-field">
-                        <label for="last_name"><?php esc_html_e( 'Nom', 'flora-shop' ); ?> *</label>
-                        <input type="text" id="last_name" name="last_name" required>
+                        <label for="full_name"><?php esc_html_e( 'Nom complet', 'flora-shop' ); ?> *</label>
+                        <input type="text" id="full_name" name="full_name" required autocomplete="name">
                     </div>
                 </div>
 
                 <div class="flora-form-row flora-form-col-2">
-                    <div class="flora-form-field">
-                        <label for="email"><?php esc_html_e( 'Email', 'flora-shop' ); ?> *</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
+                    <?php if ( get_option( 'flora_show_order_email', 1 ) ) : ?>
+                        <div class="flora-form-field">
+                            <label for="email"><?php esc_html_e( 'Email', 'flora-shop' ); ?> *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                    <?php endif; ?>
                     <div class="flora-form-field">
                         <label for="phone"><?php esc_html_e( 'Téléphone', 'flora-shop' ); ?> *</label>
                         <input type="tel" id="phone" name="phone" required>
                     </div>
                 </div>
 
-                <div class="flora-form-row">
+                <div class="flora-form-row" id="flora-address-row">
                     <div class="flora-form-field">
                         <label for="address"><?php esc_html_e( 'Adresse', 'flora-shop' ); ?> *</label>
                         <textarea id="address" name="address" rows="2" required></textarea>
@@ -44,6 +62,7 @@
                 </div>
 
                 <!-- Wilaya (liste préchargée) et commune (dépendante de la wilaya, remplie en JS). -->
+                <!-- En mode « bureau de liaison », seule la wilaya est demandée : l'adresse et la commune sont masquées. -->
                 <div class="flora-form-row flora-form-col-2">
                     <div class="flora-form-field">
                         <label for="wilaya"><?php esc_html_e( 'Wilaya', 'flora-shop' ); ?> *</label>
@@ -54,7 +73,7 @@
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="flora-form-field">
+                    <div class="flora-form-field" id="flora-commune-field">
                         <label for="commune"><?php esc_html_e( 'Commune', 'flora-shop' ); ?></label>
                         <select id="commune" name="commune_id">
                             <option value="0"><?php esc_html_e( '-- Choisir votre commune --', 'flora-shop' ); ?></option>

@@ -11,9 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Flora_Activator {
 
-    // Hook d'activation : crée les tables, les options par défaut et rafraîchit les règles de réécriture.
+    // Hook d'activation : crée les tables, les pages et les options par défaut puis rafraîchit les règles de réécriture.
     public static function activate() {
         self::create_tables();
+        self::create_pages();
         self::set_default_options();
         flush_rewrite_rules();
     }
@@ -23,13 +24,56 @@ class Flora_Activator {
         flush_rewrite_rules();
     }
 
-    // Insère les options par défaut (devise, seuil livraison gratuite, remises).
+    // Insère les options par défaut (devise, seuil livraison gratuite, remises, méthodes de livraison).
     private static function set_default_options() {
         add_option( 'flora_shop_version', FLORA_SHOP_VERSION );
         add_option( 'flora_currency', 'DZD' );
         add_option( 'flora_free_shipping_threshold', 0 );
         add_option( 'flora_product_discounts', array() );
         add_option( 'flora_cart_discounts', array() );
+        add_option( 'flora_shipping_methods', self::default_shipping_methods() );
+        add_option( 'flora_show_order_email', 1 );
+    }
+
+    // Définit la configuration par défaut des deux méthodes de livraison :
+    // « domicile » (livraison à l'adresse) et « liaison » (retrait au bureau de liaison).
+    private static function default_shipping_methods() {
+        return array(
+            'home'    => array(
+                'enabled'     => 1,
+                'label'       => __( 'Livraison à domicile', 'flora-shop' ),
+                'description' => __( 'Livraison à l\'adresse indiquée (wilaya / commune).', 'flora-shop' ),
+            ),
+            'liaison' => array(
+                'enabled'     => 1,
+                'label'       => __( 'Livraison au bureau de liaison', 'flora-shop' ),
+                'description' => __( 'Retrait de la commande au bureau de liaison de votre wilaya.', 'flora-shop' ),
+            ),
+        );
+    }
+
+    // Crée les pages Flora manquantes (par slug) et enregistre leur ID dans
+    // les options « flora_page_$key ». Les pages existantes sont réutilisées.
+    private static function create_pages() {
+        foreach ( Flora_Helpers::flora_pages() as $key => $page ) {
+            $existing = get_page_by_path( $page['slug'] );
+
+            if ( $existing && 'publish' === $existing->post_status ) {
+                $page_id = (int) $existing->ID;
+            } else {
+                $page_id = wp_insert_post( array(
+                    'post_title'   => $page['title'],
+                    'post_name'    => $page['slug'],
+                    'post_content' => $page['shortcode'],
+                    'post_status'  => 'publish',
+                    'post_type'    => 'page',
+                ) );
+            }
+
+            if ( $page_id && ! is_wp_error( $page_id ) ) {
+                update_option( 'flora_page_' . $key, $page_id );
+            }
+        }
     }
 
     // Crée ou met à jour toutes les tables du plugin via dbDelta, puis lance les migrations de colonnes.
@@ -107,6 +151,8 @@ class Flora_Activator {
             commune_id bigint(20) unsigned NOT NULL DEFAULT 0,
             base_fee decimal(10,2) NOT NULL DEFAULT 0.00,
             per_kg_fee decimal(10,2) NOT NULL DEFAULT 0.00,
+            bureau_fee decimal(10,2) NOT NULL DEFAULT 0.00,
+            bureau_per_kg_fee decimal(10,2) NOT NULL DEFAULT 0.00,
             PRIMARY KEY  (id),
             KEY wilaya_code (wilaya_code),
             KEY commune_id (commune_id)
@@ -141,6 +187,7 @@ class Flora_Activator {
             address text,
             wilaya_code int(11) DEFAULT 0,
             commune_id bigint(20) unsigned DEFAULT 0,
+            shipping_method varchar(20) NOT NULL DEFAULT 'home',
             subtotal decimal(10,2) NOT NULL DEFAULT 0.00,
             discount_total decimal(10,2) NOT NULL DEFAULT 0.00,
             shipping_fee decimal(10,2) NOT NULL DEFAULT 0.00,
@@ -184,12 +231,15 @@ class Flora_Activator {
         self::migrate_promotions_columns();
     }
 
-    // Vérifie si une mise à jour de version est nécessaire et relance la création des tables.
+    // Vérifie si une mise à jour de version est nécessaire et relance la création des pages, des tables et des options manquantes.
     public static function maybe_upgrade() {
         $installed = (string) get_option( 'flora_shop_version', '0' );
 
         if ( version_compare( $installed, FLORA_SHOP_VERSION, '<' ) ) {
+            self::create_pages();
             self::create_tables();
+            add_option( 'flora_shipping_methods', self::default_shipping_methods() );
+            add_option( 'flora_show_order_email', 1 );
             update_option( 'flora_shop_version', FLORA_SHOP_VERSION );
         }
     }
@@ -248,7 +298,8 @@ class Flora_Activator {
         }
     }
 
-    // Remplace la colonne wilaya_id par wilaya_code dans la table des frais de livraison.
+    // Remplace la colonne wilaya_id par wilaya_code dans la table des frais de livraison
+    // et ajoute les colonnes « bureau » (méthode de livraison au bureau de liaison).
     private static function migrate_shipping_rates_columns() {
         global $wpdb;
         $table = $wpdb->prefix . 'flora_shipping_rates';
@@ -259,9 +310,22 @@ class Flora_Activator {
             $wpdb->query( "UPDATE {$table} SET wilaya_code = wilaya_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $wpdb->query( "ALTER TABLE {$table} DROP COLUMN wilaya_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         }
+
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( is_array( $columns ) && ! in_array( 'bureau_fee', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN bureau_fee decimal(10,2) NOT NULL DEFAULT 0.00 AFTER per_kg_fee" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( is_array( $columns ) && ! in_array( 'bureau_per_kg_fee', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN bureau_per_kg_fee decimal(10,2) NOT NULL DEFAULT 0.00 AFTER bureau_fee" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
     }
 
-    // Remplace la colonne wilaya_id par wilaya_code dans la table des commandes.
+    // Remplace la colonne wilaya_id par wilaya_code dans la table des commandes
+    // et ajoute la colonne shipping_method (méthode de livraison choisie).
     private static function migrate_orders_columns() {
         global $wpdb;
         $table = $wpdb->prefix . 'flora_orders';
@@ -271,6 +335,12 @@ class Flora_Activator {
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN wilaya_code int(11) NOT NULL DEFAULT 0 AFTER address" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $wpdb->query( "UPDATE {$table} SET wilaya_code = wilaya_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $wpdb->query( "ALTER TABLE {$table} DROP COLUMN wilaya_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( is_array( $columns ) && ! in_array( 'shipping_method', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN shipping_method varchar(20) NOT NULL DEFAULT 'home' AFTER commune_id" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         }
     }
 

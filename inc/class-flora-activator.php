@@ -225,6 +225,36 @@ class Flora_Activator {
             KEY order_id (order_id)
         ) $charset;";
 
+        $sql_categories = "CREATE TABLE {$prefix}categories (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            slug varchar(255) NOT NULL,
+            description varchar(500) DEFAULT '',
+            sort_order int(11) NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY slug (slug)
+        ) $charset;";
+
+        $sql_tags = "CREATE TABLE {$prefix}tags (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            slug varchar(255) NOT NULL,
+            created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY slug (slug)
+        ) $charset;";
+
+        $sql_tag_items = "CREATE TABLE {$prefix}tag_items (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            item_type varchar(10) NOT NULL DEFAULT 'product',
+            item_id bigint(20) unsigned NOT NULL,
+            tag_id bigint(20) unsigned NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY item_tag (item_type, item_id, tag_id),
+            KEY type_tag (item_type, tag_id)
+        ) $charset;";
+
         dbDelta( $sql_products );
         dbDelta( $sql_packs );
         dbDelta( $sql_pack_products );
@@ -233,12 +263,16 @@ class Flora_Activator {
         dbDelta( $sql_promotions );
         dbDelta( $sql_orders );
         dbDelta( $sql_order_details );
+        dbDelta( $sql_categories );
+        dbDelta( $sql_tags );
+        dbDelta( $sql_tag_items );
 
         self::migrate_wilayas_table();
         self::migrate_communes_columns();
         self::migrate_shipping_rates_columns();
         self::migrate_orders_columns();
         self::migrate_promotions_columns();
+        self::migrate_category_id_columns();
     }
 
     // Vérifie si une mise à jour de version est nécessaire et applique, dans l'ordre,
@@ -255,6 +289,10 @@ class Flora_Activator {
             self::upgrade_1_4_0();
         }
 
+        if ( version_compare( $installed, '1.5.0', '<' ) ) {
+            self::upgrade_1_5_0();
+        }
+
         if ( version_compare( $installed, FLORA_SHOP_VERSION, '<' ) ) {
             update_option( 'flora_shop_version', FLORA_SHOP_VERSION );
         }
@@ -264,6 +302,11 @@ class Flora_Activator {
     // Les colonnes et options associées sont créées par create_tables()/ensure_options(),
     // cette étape prépare l'existant (valeurs de migration éventuelles).
     private static function upgrade_1_4_0() {}
+
+    // Migration 1.5.0 : catégories (colonne category_id sur produits/packs) et tags
+    // (table flora_tags + liaison flora_tag_items). Les tables et colonnes sont créées
+    // par create_tables(), cette étape est réservée aux traitements de données éventuels.
+    private static function upgrade_1_5_0() {}
 
     // Recrée la table wilayas si elle est absente ou corrompue, et migre les colonnes wilaya_id → wilaya_code.
     private static function migrate_wilayas_table() {
@@ -395,6 +438,23 @@ class Flora_Activator {
 
         if ( ! in_array( 'discount_amount', $columns, true ) ) {
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN discount_amount decimal(10,2) NOT NULL DEFAULT 0.00 AFTER discount_percent" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+    }
+
+    // Ajoute la colonne category_id (catégorie unique par article) aux tables produits et packs
+    // lorsqu'elle est absente, avec son index. Rerun sans risque (idempotent).
+    private static function migrate_category_id_columns() {
+        global $wpdb;
+
+        foreach ( array( 'products', 'packs' ) as $table_name ) {
+            $table   = $wpdb->prefix . 'flora_' . $table_name;
+            $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+            if ( ! is_array( $columns ) || in_array( 'category_id', $columns, true ) ) {
+                continue;
+            }
+
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN category_id bigint(20) unsigned NOT NULL DEFAULT 0 AFTER status, ADD KEY category_id (category_id)" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         }
     }
 }

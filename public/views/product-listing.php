@@ -2,10 +2,21 @@
     Grille de la boutique (shortcode [flora_products]).
     Affiche les produits puis les packs sous forme de cartes : image, nom,
     prix, courte description, contenu (packs) et ajout direct au panier.
+    Le shortcode peut restreindre l'affichage à un seul type via l'attribut
+    « type » (products / packs / both) et filtrer par catégorie / étiquette.
 -->
 <div class="flora-shop-wrap">
-    <!-- En-tête : titre de la section et lien vers le panier. -->
-    <h2><?php esc_html_e( 'Nos Produits', 'flora-shop' ); ?></h2>
+    <?php
+    // Type demandé : 'products', 'packs' ou 'both' (défaut pour compatibilité).
+    $view_type    = isset( $type ) ? $type : 'both';
+    $show_products = in_array( $view_type, array( 'products', 'both' ), true );
+    $show_packs    = in_array( $view_type, array( 'packs', 'both' ), true );
+    ?>
+
+    <!-- En-tête : titre de la section (selon le type affiché) et lien vers le panier. -->
+    <?php if ( $view_type !== 'packs' ) : ?>
+        <h2><?php esc_html_e( 'Nos Produits', 'flora-shop' ); ?></h2>
+    <?php endif; ?>
 
     <div class="flora-shop-header-actions">
         <a href="<?php echo esc_url( Flora_Helpers::get_page_url( 'cart' ) ); ?>" class="flora-header-cart-link flora-cart-open">
@@ -15,7 +26,8 @@
     </div>
 
     <!-- Grille des produits : chaque carte pointe vers la fiche produit et permet l'ajout au panier. -->
-    <?php if ( ! empty( $products ) ) : ?>
+    <?php if ( $show_products ) : ?>
+        <?php if ( ! empty( $products ) ) : ?>
         <div class="flora-products-grid">
             <?php foreach ( $products as $p ) :
                     $product_detail_url = add_query_arg( 'flora_product', $p->slug, Flora_Helpers::get_page_url( 'product' ) );
@@ -63,9 +75,10 @@
     <?php else : ?>
         <p><?php esc_html_e( 'Aucun produit disponible pour le moment.', 'flora-shop' ); ?></p>
     <?php endif; ?>
+    <?php endif; ?>
 
     <!-- Grille des packs : la carte liste le contenu du pack et autorise l'ajout direct au panier. -->
-    <?php if ( ! empty( $packs ) ) : ?>
+    <?php if ( $show_packs && ! empty( $packs ) ) : ?>
         <h2 class="flora-section-title"><?php esc_html_e( 'Nos Packs', 'flora-shop' ); ?></h2>
         <div class="flora-products-grid">
             <?php foreach ( $packs as $pk ) :

@@ -38,6 +38,12 @@ class Flora_Public {
         wp_enqueue_style( 'flora-public', FLORA_SHOP_URL . 'public/css/public.css', array(), FLORA_SHOP_VERSION );
         wp_enqueue_script( 'flora-public', FLORA_SHOP_URL . 'public/js/cart.js', array( 'jquery' ), FLORA_SHOP_VERSION, true );
 
+        // CSS personnalisé administré : injecté en ligne après les styles du plugin.
+        $custom_css = get_option( 'flora_custom_css', '' );
+        if ( $custom_css ) {
+            wp_add_inline_style( 'flora-public', $custom_css );
+        }
+
         wp_localize_script( 'flora-public', 'floraShop', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'restUrl' => rest_url( 'flora-shop/v1/' ),
@@ -68,15 +74,41 @@ class Flora_Public {
         ) );
     }
 
-    // shortcode_products : charge les produits et packs puis affiche la grille de la boutique (view product-listing).
+    // shortcode_products : charge les produits et packs (filtrés par type, catégorie et étiquettes)
+    // puis affiche la grille de la boutique (view product-listing).
     public function shortcode_products( $atts ) {
         $atts = shortcode_atts( array(
-            'limit' => 12,
+            'limit'    => 12,
+            'type'     => 'both',
+            'category' => '',
+            'tag'      => '',
         ), $atts );
 
+        // Whitelist du type : 'products' (produits seuls), 'packs' (packs seuls) ou 'both' (les deux, défaut).
+        $type     = in_array( $atts['type'], array( 'products', 'packs', 'both' ), true ) ? $atts['type'] : 'both';
+        $category = $atts['category'];
+        $tag      = $atts['tag'];
+
         $db       = Flora_DB::get_instance();
-        $products = $db->get_products( array( 'limit' => absint( $atts['limit'] ) ) );
-        $packs    = $db->get_packs();
+        $products = array();
+        $packs    = array();
+
+        // Catégorie et étiquette servent de filtres pour les deux types (logique ET entre elles).
+
+        if ( 'packs' !== $type ) {
+            $products = $db->get_products( array(
+                'limit'    => absint( $atts['limit'] ),
+                'category' => $category,
+                'tag'      => $tag,
+            ) );
+        }
+
+        if ( 'products' !== $type ) {
+            $packs = $db->get_packs( array(
+                'category' => $category,
+                'tag'      => $tag,
+            ) );
+        }
 
         ob_start();
         include FLORA_SHOP_PATH . 'public/views/product-listing.php';

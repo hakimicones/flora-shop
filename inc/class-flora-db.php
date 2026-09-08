@@ -59,6 +59,37 @@ class Flora_DB {
             $where .= " AND status = 'publish'";
         }
 
+        // Filtre par catégorie (1+ slugs séparés par des virgules) : l'article appartient à l'une d'elles.
+        if ( ! empty( $args['category'] ) ) {
+            $slugs = self::clean_slug_list( $args['category'] );
+            if ( $slugs ) {
+                $table_categories = $this->table( 'categories' );
+                $placeholders     = implode( ', ', array_fill( 0, count( $slugs ), '%s' ) );
+                $where           .= " AND {$table}.category_id IN (SELECT id FROM {$table_categories} WHERE slug IN ({$placeholders}))";
+                foreach ( $slugs as $slug ) {
+                    $params[] = $slug;
+                }
+            }
+        }
+
+        // Filtre par étiquette (1+ slugs séparés par des virgules) : l'article possède l'une d'elles.
+        if ( ! empty( $args['tag'] ) ) {
+            $slugs = self::clean_slug_list( $args['tag'] );
+            if ( $slugs ) {
+                $table_tags     = $this->table( 'tags' );
+                $table_tag_items = $this->table( 'tag_items' );
+                $placeholders    = implode( ', ', array_fill( 0, count( $slugs ), '%s' ) );
+                $where          .= " AND EXISTS (
+                    SELECT 1 FROM {$table_tag_items} ti
+                    INNER JOIN {$table_tags} t ON t.id = ti.tag_id
+                    WHERE ti.item_type = 'product' AND ti.item_id = {$table}.id AND t.slug IN ({$placeholders})
+                )";
+                foreach ( $slugs as $slug ) {
+                    $params[] = $slug;
+                }
+            }
+        }
+
         if ( ! empty( $args['limit'] ) ) {
             $limit = "LIMIT " . absint( $args['limit'] );
             if ( ! empty( $args['offset'] ) ) {
@@ -76,6 +107,13 @@ class Flora_DB {
         }
 
         return $wpdb->get_results( "SELECT * FROM {$table} {$where} {$order} {$limit}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Nettoie une liste de slugs séparés par des virgules (trim + sanitize_title), en écartant les valeurs vides.
+    private static function clean_slug_list( $list ) {
+        $slugs = array_map( 'sanitize_title', array_map( 'trim', explode( ',', (string) $list ) ) );
+        $slugs = array_values( array_filter( $slugs ) );
+        return $slugs;
     }
 
     // Insère un produit et retourne l'ID inséré.
@@ -128,6 +166,37 @@ class Flora_DB {
             $where .= " AND status = 'publish'";
         }
 
+        // Filtre par catégorie (1+ slugs séparés par des virgules) : le pack appartient à l'une d'elles.
+        if ( ! empty( $args['category'] ) ) {
+            $slugs = self::clean_slug_list( $args['category'] );
+            if ( $slugs ) {
+                $table_categories = $this->table( 'categories' );
+                $placeholders     = implode( ', ', array_fill( 0, count( $slugs ), '%s' ) );
+                $where           .= " AND {$table}.category_id IN (SELECT id FROM {$table_categories} WHERE slug IN ({$placeholders}))";
+                foreach ( $slugs as $slug ) {
+                    $params[] = $slug;
+                }
+            }
+        }
+
+        // Filtre par étiquette (1+ slugs séparés par des virgules) : le pack possède l'une d'elles.
+        if ( ! empty( $args['tag'] ) ) {
+            $slugs = self::clean_slug_list( $args['tag'] );
+            if ( $slugs ) {
+                $table_tags     = $this->table( 'tags' );
+                $table_tag_items = $this->table( 'tag_items' );
+                $placeholders    = implode( ', ', array_fill( 0, count( $slugs ), '%s' ) );
+                $where          .= " AND EXISTS (
+                    SELECT 1 FROM {$table_tag_items} ti
+                    INNER JOIN {$table_tags} t ON t.id = ti.tag_id
+                    WHERE ti.item_type = 'pack' AND ti.item_id = {$table}.id AND t.slug IN ({$placeholders})
+                )";
+                foreach ( $slugs as $slug ) {
+                    $params[] = $slug;
+                }
+            }
+        }
+
         $order = 'ORDER BY sort_order ASC, id DESC';
 
         // Requête préparée uniquement lorsqu'il y a des paramètres dynamiques.
@@ -158,6 +227,153 @@ class Flora_DB {
         global $wpdb;
         $table = $this->table( 'packs' );
         return $wpdb->update( $table, array( 'status' => 'trash' ), array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Récupère toutes les catégories triées. Retourne un tableau d'objets.
+    public function get_categories() {
+        global $wpdb;
+        $table = $this->table( 'categories' );
+        return $wpdb->get_results( "SELECT * FROM {$table} ORDER BY sort_order ASC, name ASC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Récupère une catégorie par son ID. Retourne un objet ligne ou null.
+    public function get_category( $id ) {
+        global $wpdb;
+        $table = $this->table( 'categories' );
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Récupère une catégorie par son slug. Retourne un objet ligne ou null.
+    public function get_category_by_slug( $slug ) {
+        global $wpdb;
+        $table = $this->table( 'categories' );
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE slug = %s", $slug ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Insère une catégorie et retourne l'ID inséré.
+    public function insert_category( $data ) {
+        global $wpdb;
+        $table = $this->table( 'categories' );
+        $wpdb->insert( $table, $data ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        return $wpdb->insert_id;
+    }
+
+    // Met à jour une catégorie. Retourne le nombre de lignes affectées.
+    public function update_category( $id, $data ) {
+        global $wpdb;
+        $table = $this->table( 'categories' );
+        return $wpdb->update( $table, $data, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Supprime une catégorie par son ID. Retourne le nombre de lignes affectées.
+    public function delete_category( $id ) {
+        global $wpdb;
+        $table = $this->table( 'categories' );
+        return $wpdb->delete( $table, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Détache une catégorie supprimée des articles (produits et packs) : remet category_id à 0.
+    // Retourne le nombre total de lignes mises à jour.
+    public function clear_category_links( $category_id ) {
+        global $wpdb;
+        $category_id = absint( $category_id );
+        $updated     = 0;
+
+        foreach ( array( 'products', 'packs' ) as $table_name ) {
+            $table   = $this->table( $table_name );
+            $updated += (int) $wpdb->update( $table, array( 'category_id' => 0 ), array( 'category_id' => $category_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return $updated;
+    }
+
+    // Récupère toutes les étiquettes triées par nom. Retourne un tableau d'objets.
+    public function get_tags() {
+        global $wpdb;
+        $table = $this->table( 'tags' );
+        return $wpdb->get_results( "SELECT * FROM {$table} ORDER BY name ASC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Récupère une étiquette par son ID. Retourne un objet ligne ou null.
+    public function get_tag( $id ) {
+        global $wpdb;
+        $table = $this->table( 'tags' );
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Récupère une étiquette par son slug. Retourne un objet ligne ou null.
+    public function get_tag_by_slug( $slug ) {
+        global $wpdb;
+        $table = $this->table( 'tags' );
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE slug = %s", $slug ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Insère une étiquette et retourne l'ID inséré.
+    public function insert_tag( $data ) {
+        global $wpdb;
+        $table = $this->table( 'tags' );
+        $wpdb->insert( $table, $data ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        return $wpdb->insert_id;
+    }
+
+    // Met à jour une étiquette. Retourne le nombre de lignes affectées.
+    public function update_tag( $id, $data ) {
+        global $wpdb;
+        $table = $this->table( 'tags' );
+        return $wpdb->update( $table, $data, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Supprime une étiquette par son ID. Retourne le nombre de lignes affectées.
+    public function delete_tag( $id ) {
+        global $wpdb;
+        $table = $this->table( 'tags' );
+        return $wpdb->delete( $table, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Retourne les IDs des étiquettes associées à un article (produit ou pack). Retourne un tableau d'entiers.
+    public function get_item_tags( $item_type, $item_id ) {
+        global $wpdb;
+        $table = $this->table( 'tag_items' );
+        return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare( "SELECT tag_id FROM {$table} WHERE item_type = %s AND item_id = %d ORDER BY id ASC", $item_type, $item_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Retire les liaisons des articles vers une étiquette supprimée. Retourne le nombre de lignes affectées.
+    public function clear_tag_links( $tag_id ) {
+        global $wpdb;
+        $table = $this->table( 'tag_items' );
+        return $wpdb->delete( $table, array( 'tag_id' => absint( $tag_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Enregistre les étiquettes d'un article : purge des anciennes liaisons puis insertion des nouvelles.
+    // Retourne vrai en cas de succès. Le type d'article est restreint à 'product' ou 'pack'.
+    public function set_item_tags( $item_type, $item_id, $tag_ids ) {
+        global $wpdb;
+
+        if ( ! in_array( $item_type, array( 'product', 'pack' ), true ) ) {
+            return false;
+        }
+
+        $table = $this->table( 'tag_items' );
+        $wpdb->delete( $table, array( 'item_type' => $item_type, 'item_id' => $item_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        $ok = true;
+        foreach ( $tag_ids as $tag_id ) {
+            $tag_id = absint( $tag_id );
+            if ( $tag_id <= 0 ) {
+                continue;
+            }
+            $inserted = $wpdb->insert( $table, array( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                'item_type' => $item_type,
+                'item_id'   => $item_id,
+                'tag_id'    => $tag_id,
+            ) );
+            if ( false === $inserted ) {
+                $ok = false;
+                break;
+            }
+        }
+
+        return $ok;
     }
 
     // Récupère les produits liés à un pack. Retourne un tableau d'objets.

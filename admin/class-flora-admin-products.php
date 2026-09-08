@@ -53,6 +53,7 @@ class Flora_Admin_Products {
                 'stock_status' => $_POST['stock_qty'] > 0 ? 'instock' : 'outofstock',
                 'status'      => sanitize_text_field( $_POST['status'] ),
                 'sort_order'  => Flora_Helpers::sanitize_number( $_POST['sort_order'] ),
+                'category_id' => isset( $_POST['category_id'] ) ? absint( $_POST['category_id'] ) : 0,
             );
 
             $id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
@@ -60,8 +61,17 @@ class Flora_Admin_Products {
             if ( $id > 0 ) {
                 $db->update_product( $id, $data );
             } else {
-                $db->insert_product( $data );
+                $id = $db->insert_product( $data );
             }
+
+            // Enregistrement des étiquettes du produit (tableau d'IDs assaini en entiers).
+            $tag_ids = array();
+            if ( ! empty( $_POST['tags'] ) && is_array( $_POST['tags'] ) ) {
+                foreach ( $_POST['tags'] as $tag_id ) {
+                    $tag_ids[] = absint( $tag_id );
+                }
+            }
+            $db->set_item_tags( 'product', $id, $tag_ids );
 
             wp_safe_redirect( admin_url( 'admin.php?page=flora-products&flora_notice=product_saved' ) );
             exit;
@@ -93,6 +103,15 @@ class Flora_Admin_Products {
             $db      = Flora_DB::get_instance();
             // Lecture GET assainie par absint avant chargement du produit.
             $product = $db->get_product( absint( $_GET['id'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+        }
+
+        // Catégories et étiquettes disponibles, et étiquettes déjà rattachées au produit.
+        $db           = Flora_DB::get_instance();
+        $all_categories = $db->get_categories();
+        $all_tags       = $db->get_tags();
+        $product_tags   = array();
+        if ( $product ) {
+            $product_tags = $db->get_item_tags( 'product', $product->id );
         }
 
         include FLORA_SHOP_PATH . 'admin/views/product-form.php';

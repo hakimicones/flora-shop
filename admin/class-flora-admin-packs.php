@@ -50,6 +50,7 @@ class Flora_Admin_Packs {
                 'image_url'   => esc_url_raw( $_POST['image_url'] ),
                 'status'      => sanitize_text_field( $_POST['status'] ),
                 'sort_order'  => Flora_Helpers::sanitize_number( $_POST['sort_order'] ),
+                'category_id' => isset( $_POST['category_id'] ) ? absint( $_POST['category_id'] ) : 0,
             );
 
             $id = isset( $_POST['pack_id'] ) ? absint( $_POST['pack_id'] ) : 0;
@@ -59,6 +60,15 @@ class Flora_Admin_Packs {
             } else {
                 $id = $db->insert_pack( $data );
             }
+
+            // Enregistrement des étiquettes du pack (tableau d'IDs assaini en entiers).
+            $tag_ids = array();
+            if ( ! empty( $_POST['tags'] ) && is_array( $_POST['tags'] ) ) {
+                foreach ( $_POST['tags'] as $tag_id ) {
+                    $tag_ids[] = absint( $tag_id );
+                }
+            }
+            $db->set_item_tags( 'pack', $id, $tag_ids );
 
             $pack_products = array();
             // Validation stricte des lignes produits du pack : chaque élément doit fournir
@@ -114,6 +124,14 @@ class Flora_Admin_Packs {
 
         // Liste complète des produits, nécessaire au sélecteur de la vue pack-form.
         $all_products = $db->get_products();
+
+        // Catégories et étiquettes disponibles, et étiquettes déjà rattachées au pack.
+        $all_categories = $db->get_categories();
+        $all_tags       = $db->get_tags();
+        $pack_tags      = array();
+        if ( $pack ) {
+            $pack_tags = $db->get_item_tags( 'pack', $pack->id );
+        }
 
         include FLORA_SHOP_PATH . 'admin/views/pack-form.php';
     }

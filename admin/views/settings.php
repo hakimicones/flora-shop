@@ -31,6 +31,13 @@
                     </label>
                 </td>
             </tr>
+            <tr>
+                <th><label for="custom_css"><?php esc_html_e( 'CSS personnalisé', 'flora-shop' ); ?></label></th>
+                <td>
+                    <textarea id="custom_css" name="custom_css" class="large-text code" rows="10" placeholder="<?php esc_attr_e( '/* Votre CSS ici */', 'flora-shop' ); ?>"><?php echo esc_textarea( $custom_css ); ?></textarea>
+                    <p class="description"><?php esc_html_e( 'CSS injecté sur les pages de la boutique (après les styles du plugin).', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
         </table>
 
         <?php /* --- Pages de la boutique : association de chaque étape à une page WordPress existante --- */ ?>

@@ -23,6 +23,8 @@ class Flora_Admin {
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-dashboard.php';
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-products.php';
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-packs.php';
+        require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-categories.php';
+        require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-tags.php';
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-shipping.php';
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-promotions.php';
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-orders.php';
@@ -107,6 +109,24 @@ class Flora_Admin {
 
         add_submenu_page(
             'flora-shop',
+            __( 'Catégories', 'flora-shop' ),
+            __( 'Catégories', 'flora-shop' ),
+            'manage_options',
+            'flora-categories',
+            array( 'Flora_Admin_Categories', 'render' )
+        );
+
+        add_submenu_page(
+            'flora-shop',
+            __( 'Étiquettes', 'flora-shop' ),
+            __( 'Étiquettes', 'flora-shop' ),
+            'manage_options',
+            'flora-tags',
+            array( 'Flora_Admin_Tags', 'render' )
+        );
+
+        add_submenu_page(
+            'flora-shop',
             __( 'Transport', 'flora-shop' ),
             __( 'Transport', 'flora-shop' ),
             'manage_options',
@@ -182,6 +202,18 @@ class Flora_Admin {
                     break;
                 case 'promo_deleted':
                     $message = __( 'Promotion supprimée.', 'flora-shop' );
+                    break;
+                case 'category_saved':
+                    $message = __( 'Catégorie enregistrée.', 'flora-shop' );
+                    break;
+                case 'category_deleted':
+                    $message = __( 'Catégorie supprimée.', 'flora-shop' );
+                    break;
+                case 'tag_saved':
+                    $message = __( 'Étiquette enregistrée.', 'flora-shop' );
+                    break;
+                case 'tag_deleted':
+                    $message = __( 'Étiquette supprimée.', 'flora-shop' );
                     break;
                 case 'settings_saved':
                     $message = __( 'Paramètres enregistrés.', 'flora-shop' );

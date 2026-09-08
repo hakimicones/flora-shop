@@ -45,6 +45,32 @@
                     </select>
                 </td>
             </tr>
+            <tr>
+                <th><label for="category_id"><?php esc_html_e( 'Catégorie', 'flora-shop' ); ?></label></th>
+                <td>
+                    <select id="category_id" name="category_id">
+                        <option value="0"><?php esc_html_e( '— Aucune —', 'flora-shop' ); ?></option>
+                        <?php foreach ( $all_categories as $cat ) : ?>
+                            <option value="<?php echo esc_attr( $cat->id ); ?>" <?php selected( $pack ? $pack->category_id : 0, $cat->id ); ?>><?php echo esc_html( $cat->name ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th><?php esc_html_e( 'Étiquettes', 'flora-shop' ); ?></th>
+                <td>
+                    <?php if ( empty( $all_tags ) ) : ?>
+                        <p class="description"><?php esc_html_e( 'Aucune étiquette disponible. Créez-en dans le menu « Étiquettes ».', 'flora-shop' ); ?></p>
+                    <?php else : ?>
+                        <?php foreach ( $all_tags as $tag ) : ?>
+                            <label style="display:inline-block; margin-right:12px;">
+                                <input type="checkbox" name="tags[]" value="<?php echo esc_attr( $tag->id ); ?>" <?php checked( in_array( $tag->id, $pack_tags, true ) ); ?>>
+                                <?php echo esc_html( $tag->name ); ?>
+                            </label>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
         </table>
 
         <?php /* --- Table des produits contenus dans le pack (lignes dynamiques) --- */ ?>

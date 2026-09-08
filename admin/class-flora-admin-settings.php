@@ -25,6 +25,7 @@ class Flora_Admin_Settings {
         $product_discounts       = get_option( 'flora_product_discounts', array() );
         $cart_discounts          = get_option( 'flora_cart_discounts', array() );
         $show_order_email        = get_option( 'flora_show_order_email', 1 );
+        $custom_css              = get_option( 'flora_custom_css', '' );
 
         // Pages associées à chaque étape de la boutique (IDs résolus par les helpers).
         $flora_pages = array();
@@ -55,6 +56,10 @@ class Flora_Admin_Settings {
 
             // Affichage de l'email du client sur la page de confirmation (case à cocher : absent = 0).
             update_option( 'flora_show_order_email', empty( $_POST['show_order_email'] ) ? 0 : 1 );
+
+            // CSS personnalisé : les balises HTML (<style>, </style>, etc.) sont retirées
+            // pour empêcher toute échappée de contexte HTML ; le CSS lui-même est conservé.
+            update_option( 'flora_custom_css', wp_strip_all_tags( wp_unslash( $_POST['custom_css'] ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
             // Remises produits : tableau revalidé ligne par ligne ; chaque entrée doit
             // fournir product_id, min_qty et percent non vides, convertis en entiers.

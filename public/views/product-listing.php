@@ -11,6 +11,11 @@
     $view_type    = isset( $type ) ? $type : 'both';
     $show_products = in_array( $view_type, array( 'products', 'both' ), true );
     $show_packs    = in_array( $view_type, array( 'packs', 'both' ), true );
+
+    $grid_columns = absint( get_option( 'flora_grid_columns', 4 ) );
+    if ( $grid_columns < 2 || $grid_columns > 5 ) {
+        $grid_columns = 4;
+    }
     ?>
 
     <!-- En-tête : titre de la section (selon le type affiché) et lien vers le panier. -->
@@ -28,7 +33,7 @@
     <!-- Grille des produits : chaque carte pointe vers la fiche produit et permet l'ajout au panier. -->
     <?php if ( $show_products ) : ?>
         <?php if ( ! empty( $products ) ) : ?>
-        <div class="flora-products-grid">
+        <div class="flora-products-grid" style="--flora-cols: <?php echo esc_attr( $grid_columns ); ?>">
             <?php foreach ( $products as $p ) :
                     $product_detail_url = add_query_arg( 'flora_product', $p->slug, Flora_Helpers::get_page_url( 'product' ) );
                 ?>
@@ -80,7 +85,7 @@
     <!-- Grille des packs : la carte liste le contenu du pack et autorise l'ajout direct au panier. -->
     <?php if ( $show_packs && ! empty( $packs ) ) : ?>
         <h2 class="flora-section-title"><?php esc_html_e( 'Nos Packs', 'flora-shop' ); ?></h2>
-        <div class="flora-products-grid">
+        <div class="flora-products-grid" style="--flora-cols: <?php echo esc_attr( $grid_columns ); ?>">
             <?php foreach ( $packs as $pk ) :
                     $pack_detail_url = add_query_arg( 'flora_pack', $pk->slug, Flora_Helpers::get_page_url( 'product' ) );
                     $pack_products_list = $db->get_pack_products( $pk->id );

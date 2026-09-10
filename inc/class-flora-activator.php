@@ -38,6 +38,7 @@ class Flora_Activator {
             'flora_show_order_email'     => 1,
             'flora_languages'            => Flora_Helpers::default_languages(),
             'flora_default_language'     => 'fr',
+            'flora_grid_columns'         => 4,
         );
 
         foreach ( $defaults as $key => $value ) {

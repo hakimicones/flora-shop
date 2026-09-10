@@ -28,6 +28,7 @@ class Flora_Admin_Settings {
         $custom_css              = get_option( 'flora_custom_css', '' );
         $languages               = get_option( 'flora_languages', Flora_Helpers::default_languages() );
         $default_language        = get_option( 'flora_default_language', 'fr' );
+        $grid_columns            = get_option( 'flora_grid_columns', 4 );
 
         // Pages associées à chaque étape de la boutique (IDs résolus par les helpers).
         $flora_pages = array();
@@ -55,6 +56,13 @@ class Flora_Admin_Settings {
             // Enregistrement des options simples, valeurs assainies avant écriture.
             update_option( 'flora_currency', Flora_Helpers::sanitize_text( $_POST['currency'] ) );
             update_option( 'flora_free_shipping_threshold', Flora_Helpers::sanitize_float( $_POST['free_shipping_threshold'] ) );
+
+            // Nombre de colonnes de la grille boutique : borné entre 2 et 5, défaut 4.
+            $grid_columns = absint( $_POST['grid_columns'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            if ( $grid_columns < 2 || $grid_columns > 5 ) {
+                $grid_columns = 4;
+            }
+            update_option( 'flora_grid_columns', $grid_columns );
 
             // Affichage de l'email du client sur la page de confirmation (case à cocher : absent = 0).
             update_option( 'flora_show_order_email', empty( $_POST['show_order_email'] ) ? 0 : 1 );

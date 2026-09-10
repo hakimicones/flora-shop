@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes globales : version, chemins et basename du plugin.
-define( 'FLORA_SHOP_VERSION', '1.6.0' );
+define( 'FLORA_SHOP_VERSION', '1.6.1' );
 define( 'FLORA_SHOP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FLORA_SHOP_URL', plugin_dir_url( __FILE__ ) );
 define( 'FLORA_SHOP_BASENAME', plugin_basename( __FILE__ ) );

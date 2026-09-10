@@ -32,6 +32,17 @@
                 </td>
             </tr>
             <tr>
+                <th><label for="grid_columns"><?php esc_html_e( 'Colonnes de la grille', 'flora-shop' ); ?></label></th>
+                <td>
+                    <select id="grid_columns" name="grid_columns">
+                        <?php for ( $i = 2; $i <= 5; $i++ ) : ?>
+                            <option value="<?php echo esc_attr( $i ); ?>" <?php selected( $grid_columns, $i ); ?>><?php echo esc_html( $i ); ?></option>
+                        <?php endfor; ?>
+                    </select>
+                    <p class="description"><?php esc_html_e( 'Nombre de colonnes de la grille produits sur ordinateur (mobile : toujours 2 colonnes).', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
+            <tr>
                 <th><label for="custom_css"><?php esc_html_e( 'CSS personnalisé', 'flora-shop' ); ?></label></th>
                 <td>
                     <textarea id="custom_css" name="custom_css" class="large-text code" rows="10" placeholder="<?php esc_attr_e( '/* Votre CSS ici */', 'flora-shop' ); ?>"><?php echo esc_textarea( $custom_css ); ?></textarea>

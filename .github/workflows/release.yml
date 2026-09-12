@@ -31,8 +31,8 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q zip rsync
-          mkdir -p dist/src
-          rsync -a --exclude='.git*' --exclude='.github' --exclude='tools' --exclude='dist' --exclude='*.md' ./ dist/src/flora-shop/
+          mkdir -p dist/flora-shop
+          rsync -a --exclude='.git*' --exclude='.github' --exclude='tools' --exclude='dist' --exclude='*.md' ./ dist/flora-shop/
           cd dist
           zip -rq flora-shop.zip flora-shop
           unzip -l flora-shop.zip | tail -3

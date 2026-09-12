@@ -27,6 +27,7 @@ $tables = array(
     $prefix . 'orders',
     $prefix . 'shipping_rates',
     $prefix . 'promotions',
+    $prefix . 'catalog_discounts',
     $prefix . 'pack_products',
     $prefix . 'packs',
     $prefix . 'products',

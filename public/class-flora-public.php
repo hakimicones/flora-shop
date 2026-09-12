@@ -138,6 +138,8 @@ class Flora_Public {
             if ( $pack ) {
                 $pack_products = $db->get_pack_products( $pack->id );
                 $promo_config  = self::build_promo_config( $db->get_promotions( true ), 'pack', $pack->id, $pack->name );
+                // Ajout des remises catalogue (catégorie / type / tag) applicables à ce pack.
+                $promo_config  = array_merge( $promo_config, self::build_catalog_promo_config( $db->get_catalog_discounts( true ), 'pack', $pack ) );
                 foreach ( $promo_config as $entry ) {
                     $pack_promotions[] = (object) $entry;
                 }
@@ -157,7 +159,9 @@ class Flora_Public {
         $product_promotions = array();
         $promo_config       = array();
         if ( $product ) {
-            $promo_config      = self::build_promo_config( $db->get_promotions( true ), 'product', $product->id, $product->name );
+            $promo_config = self::build_promo_config( $db->get_promotions( true ), 'product', $product->id, $product->name );
+            // Ajout des remises catalogue (catégorie / type / tag) applicables à ce produit.
+            $promo_config = array_merge( $promo_config, self::build_catalog_promo_config( $db->get_catalog_discounts( true ), 'product', $product ) );
             foreach ( $promo_config as $entry ) {
                 $product_promotions[] = (object) $entry;
             }
@@ -233,7 +237,93 @@ class Flora_Public {
         return $config;
     }
 
-    // shortcode_cart : affiche la page panier (contenu rendu dynamiquement par cart.js).
+    // build_catalog_promo_config : transforme les remises catalogue (catégorie / type / tag)
+    // applicables au produit ou pack affiché en configuration lisible par le récapitulatif de prix.
+    // Le champ « scope » enrichit chaque entrée pour que le récapitulatif groupe les paliers par cible.
+    private static function build_catalog_promo_config( $discounts, $item_type, $item ) {
+        $db      = Flora_DB::get_instance();
+        $config  = array();
+        $item_id = absint( $item->id );
+
+        foreach ( $discounts as $promo ) {
+            $scope       = $promo->scope ? $promo->scope : 'category';
+            $target_id   = absint( $promo->target_id );
+            $promo_item  = $promo->item_type ? $promo->item_type : 'both';
+            $trigger_qty = absint( $promo->trigger_qty );
+            $reward_type = $promo->reward_type ? $promo->reward_type : 'percent';
+            $limit       = absint( $promo->limit_per_order );
+
+            if ( $trigger_qty <= 0 || ! in_array( $scope, array( 'category', 'type', 'tag' ), true ) ) {
+                continue;
+            }
+
+            if ( 'type' === $scope ) {
+                $matches = ( $promo_item === $item_type );
+            } elseif ( 'category' === $scope ) {
+                $matches = ( ( 'both' === $promo_item || $promo_item === $item_type )
+                    && absint( $item->category_id ) === $target_id );
+            } else {
+                $item_tags = array_map( 'absint', $db->get_item_tags( $item_type, $item_id ) );
+                $matches   = ( ( 'both' === $promo_item || $promo_item === $item_type )
+                    && in_array( $target_id, $item_tags, true ) );
+            }
+
+            if ( ! $matches ) {
+                continue;
+            }
+
+            $target_label = Flora_Cart::catalog_target_label( $scope, $target_id, $promo_item );
+
+            $entry = array(
+                'id'          => absint( $promo->id ),
+                'trigger_qty' => $trigger_qty,
+                'limit'       => $limit,
+                'reward_type' => $reward_type,
+                'is_free'     => false,
+                'scope'       => $scope,
+            );
+
+            if ( 'percent' === $reward_type ) {
+                $percent = (float) $promo->discount_percent;
+                if ( $percent <= 0 ) {
+                    continue;
+                }
+                $entry['title'] = sprintf( __( '%s%% de réduction sur %s', 'flora-shop' ), rtrim( rtrim( number_format( $percent, 2, '.', '' ), '0' ), '.' ), $target_label );
+                $entry['value'] = $percent;
+            } elseif ( 'amount' === $reward_type ) {
+                $amount = (float) $promo->discount_amount;
+                if ( $amount <= 0 ) {
+                    continue;
+                }
+                $entry['title'] = sprintf( __( 'Réduction de %s sur %s', 'flora-shop' ), Flora_Helpers::format_price( $amount ), $target_label );
+                $entry['value'] = $amount;
+            } else {
+                $free_type = isset( $promo->free_type ) && $promo->free_type ? $promo->free_type : 'product';
+                $free_id   = absint( $promo->free_product_id );
+                $free_qty  = absint( $promo->free_qty );
+                if ( $free_id <= 0 || $free_qty <= 0 ) {
+                    continue;
+                }
+
+                if ( 'pack' === $free_type ) {
+                    $free_pack = $db->get_pack( $free_id );
+                    $free_name = $free_pack ? $db->localize_item( $free_pack, 'pack' )->name : __( 'Pack', 'flora-shop' );
+                } else {
+                    $free_prod = $db->get_product( $free_id );
+                    $free_name = $free_prod ? $db->localize_item( $free_prod, 'product' )->name : __( 'Produit', 'flora-shop' );
+                }
+
+                $entry['title']   = sprintf( __( 'Achetez %d articles de %s et recevez %d × %s offert(s)', 'flora-shop' ), $trigger_qty, $target_label, $free_qty, $free_name );
+                $entry['value']   = $free_qty;
+                $entry['is_free'] = true;
+            }
+
+            $config[] = $entry;
+        }
+
+        return $config;
+    }
+
     public function shortcode_cart() {
         ob_start();
         include FLORA_SHOP_PATH . 'public/views/cart.php';

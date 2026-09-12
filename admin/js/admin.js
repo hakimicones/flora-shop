@@ -17,19 +17,6 @@ jQuery(document).ready(function($) {
         $(this).closest('tr').remove();
     });
 
-    // Settings: Add product discount row
-    var pdIndex = 50;
-    $('#flora-add-product-discount').on('click', function() {
-        var html = '<tr>' +
-            '<td><select name="product_discounts[' + pdIndex + '][product_id]" class="regular-text"><option value="">-- Choisir --</option></select></td>' +
-            '<td><input type="number" name="product_discounts[' + pdIndex + '][min_qty]" class="small-text" min="1" value="3"></td>' +
-            '<td><input type="number" name="product_discounts[' + pdIndex + '][percent]" class="small-text" min="1" max="100" value="10"></td>' +
-            '<td><button type="button" class="button flora-remove-row">Supprimer</button></td>' +
-            '</tr>';
-        $('#flora-product-discounts tbody').append(html);
-        pdIndex++;
-    });
-
     // Settings: Add cart discount row
     var cdIndex = 50;
     $('#flora-add-cart-discount').on('click', function() {

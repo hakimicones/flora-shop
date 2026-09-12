@@ -23,6 +23,13 @@ class Flora_Admin_Promotions {
             wp_die( esc_html__( 'Accès non autorisé.', 'flora-shop' ) );
         }
 
+        // Onglet « Remises catégorie / type / tag » (processus séparé) : délégation à sa classe admin.
+        $tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'promos'; // phpcs:ignore WordPress.Security.NonceVerification
+        if ( 'catalog' === $tab ) {
+            Flora_Admin_Catalog_Discounts::render();
+            return;
+        }
+
         self::handle_actions();
 
         $action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : 'list'; // phpcs:ignore WordPress.Security.NonceVerification

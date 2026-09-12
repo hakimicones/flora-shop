@@ -27,6 +27,7 @@ class Flora_Admin {
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-tags.php';
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-shipping.php';
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-promotions.php';
+        require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-catalog-discounts.php';
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-orders.php';
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-settings.php';
     }
@@ -204,6 +205,12 @@ class Flora_Admin {
                     break;
                 case 'promo_deleted':
                     $message = __( 'Promotion supprimée.', 'flora-shop' );
+                    break;
+                case 'catalog_discount_saved':
+                    $message = __( 'Remise enregistrée.', 'flora-shop' );
+                    break;
+                case 'catalog_discount_deleted':
+                    $message = __( 'Remise supprimée.', 'flora-shop' );
                     break;
                 case 'category_saved':
                     $message = __( 'Catégorie enregistrée.', 'flora-shop' );

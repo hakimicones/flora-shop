@@ -25,7 +25,7 @@
 
     <div class="flora-shop-header-actions">
         <a href="<?php echo esc_url( Flora_Helpers::get_page_url( 'cart' ) ); ?>" class="flora-header-cart-link flora-cart-open">
-            <span class="dashicons dashicons-cart"></span> Mon panier
+            <span class="dashicons dashicons-cart"></span> <?php echo esc_html( Flora_Helpers::cart_button_label() ); ?>
             <span class="flora-cart-count" style="display:none;">0</span>
         </a>
     </div>
@@ -69,7 +69,7 @@
                                     data-type="product"
                                     data-id="<?php echo esc_attr( $p->id ); ?>"
                                     data-qty-input="qty-product-<?php echo esc_attr( $p->id ); ?>">
-                                    <?php esc_html_e( 'Ajouter au panier', 'flora-shop' ); ?>
+                                    <?php echo esc_html( Flora_Helpers::add_to_cart_label() ); ?>
                                 </button>
                             </div>
                         <?php endif; ?>
@@ -131,7 +131,7 @@
                                 data-type="pack"
                                 data-id="<?php echo esc_attr( $pk->id ); ?>"
                                 data-qty-input="qty-pack-<?php echo esc_attr( $pk->id ); ?>">
-                                <?php esc_html_e( 'Ajouter au panier', 'flora-shop' ); ?>
+                                <?php echo esc_html( Flora_Helpers::add_to_cart_label() ); ?>
                             </button>
                         </div>
                     </div>

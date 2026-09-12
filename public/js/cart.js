@@ -566,31 +566,52 @@ $(document).on('keydown', function(e) {
             var promosHtml = '';
             var discount = 0;
 
+            // Les promotions (produit/pack) et les remises catalogue (catégorie/type/tag) s'additionnent :
+            // on sélectionne le palier exclusif dans chacun des deux groupes (le plus haut trigger_qty <= quantité).
+            var groups = {};
             for (var i = 0; i < promotions.length; i++) {
                 var p = promotions[i];
-                var triggerQty = parseInt(p.trigger_qty, 10) || 1;
-                var times = Math.floor(qty / triggerQty);
-                if (times <= 0) continue;
+                var groupKey = p.scope || '_item';
+                if (!groups[groupKey]) groups[groupKey] = [];
+                groups[groupKey].push(p);
+            }
 
-                var limit = parseInt(p.limit, 10) || 0;
+            var bestOf = function(list) {
+                var best = null;
+                for (var g = 0; g < list.length; g++) {
+                    var triggerQty = parseInt(list[g].trigger_qty, 10) || 1;
+                    if (qty < triggerQty) continue;
+                    if (!best || triggerQty > parseInt(best.trigger_qty, 10)) best = list[g];
+                }
+                return best;
+            };
+
+            var groupKeys = Object.keys(groups);
+            for (var k = 0; k < groupKeys.length; k++) {
+                var bestPromo = bestOf(groups[groupKeys[k]]);
+                if (!bestPromo) continue;
+
+                var triggerQty = parseInt(bestPromo.trigger_qty, 10) || 1;
+                var times = Math.floor(qty / triggerQty);
+                var limit = parseInt(bestPromo.limit, 10) || 0;
                 if (limit > 0 && times > limit) times = limit;
                 if (times <= 0) continue;
 
                 var amount = 0;
-                if (p.reward_type === 'percent') {
-                    var percent = parseFloat(p.value) || 0;
+                if (bestPromo.reward_type === 'percent') {
+                    var percent = parseFloat(bestPromo.value) || 0;
                     amount = (times * triggerQty * unitPrice) * (percent / 100);
-                } else if (p.reward_type === 'amount') {
-                    var perSet = parseFloat(p.value) || 0;
+                } else if (bestPromo.reward_type === 'amount') {
+                    var perSet = parseFloat(bestPromo.value) || 0;
                     var maxDiscount = times * triggerQty * unitPrice;
                     amount = Math.min(times * perSet, maxDiscount);
                 }
 
-                if (p.is_free) {
-                    promosHtml += '<tr><td>' + escapeHtml(p.title) + '</td><td class="flora-promo-amount">' + i18n.added_free + '</td></tr>';
+                if (bestPromo.is_free) {
+                    promosHtml += '<tr><td>' + escapeHtml(bestPromo.title) + '</td><td class="flora-promo-amount">' + i18n.added_free + '</td></tr>';
                 } else {
                     discount += amount;
-                    promosHtml += '<tr><td>' + escapeHtml(p.title) + '</td><td>- ' + formatPrice(amount) + '</td></tr>';
+                    promosHtml += '<tr><td>' + escapeHtml(bestPromo.title) + '</td><td>- ' + formatPrice(amount) + '</td></tr>';
                 }
             }
 
@@ -609,7 +630,11 @@ $(document).on('keydown', function(e) {
 
     // ========== HELPERS ==========
     function formatPrice(amount) {
-        return parseFloat(amount || 0).toFixed(2) + ' DZD';
+        // Même format que Flora_Helpers::format_price() : deux décimales, espace insécable comme
+        // séparateur de milliers, devise collée, et isolates bidi LTR pour éviter le réordonnancement RTL.
+        var n = parseFloat(amount || 0).toFixed(2).split('.');
+        n[0] = n[0].replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0');
+        return '\u2066' + n.join(',') + ' DZD\u2069';
     }
 
     function escapeHtml(str) {

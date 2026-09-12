@@ -5,6 +5,11 @@
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-promotions&action=add' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Ajouter une promotion', 'flora-shop' ); ?></a>
     <hr class="wp-header-end">
 
+    <nav class="nav-tab-wrapper" style="padding-bottom:0;">
+        <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-promotions' ) ); ?>" class="nav-tab nav-tab-active"><?php esc_html_e( 'Promotions', 'flora-shop' ); ?></a>
+        <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-promotions&tab=catalog' ) ); ?>" class="nav-tab"><?php esc_html_e( 'Remises catégorie / type / tag', 'flora-shop' ); ?></a>
+    </nav>
+
     <table class="wp-list-table widefat fixed striped">
         <thead>
             <tr>

@@ -10,7 +10,7 @@
             <span class="dashicons dashicons-arrow-left-alt"></span> <?php esc_html_e( 'Retour à la boutique', 'flora-shop' ); ?>
         </a>
         <a href="<?php echo esc_url( Flora_Helpers::get_page_url( 'cart' ) ); ?>" class="flora-header-cart-link flora-cart-open">
-            <span class="dashicons dashicons-cart"></span> <?php esc_html_e( 'Mon panier', 'flora-shop' ); ?>
+            <span class="dashicons dashicons-cart"></span> <?php echo esc_html( Flora_Helpers::cart_button_label() ); ?>
             <span class="flora-cart-count" style="display:none;">0</span>
         </a>
     </div>
@@ -107,7 +107,7 @@
                             data-type="pack"
                             data-id="<?php echo esc_attr( $pack->id ); ?>"
                             data-qty-input="qty-pack-<?php echo esc_attr( $pack->id ); ?>">
-                            <?php esc_html_e( 'Ajouter au panier', 'flora-shop' ); ?>
+                            <?php echo esc_html( Flora_Helpers::add_to_cart_label() ); ?>
                         </button>
                     </div>
 

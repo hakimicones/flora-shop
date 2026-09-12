@@ -32,13 +32,17 @@ class Flora_Activator {
             'flora_shop_version'         => FLORA_SHOP_VERSION,
             'flora_currency'             => 'DZD',
             'flora_free_shipping_threshold' => 0,
-            'flora_product_discounts'    => array(),
             'flora_cart_discounts'       => array(),
             'flora_shipping_methods'     => self::default_shipping_methods(),
             'flora_show_order_email'     => 1,
             'flora_languages'            => Flora_Helpers::default_languages(),
             'flora_default_language'     => 'fr',
             'flora_grid_columns'         => 4,
+            'flora_cart_button_fr'       => 'Mon panier',
+            'flora_cart_button_ar'       => 'سلة التسوق',
+            'flora_add_to_cart_fr'       => 'Ajouter au panier',
+            'flora_add_to_cart_ar'       => 'أضف إلى السلة',
+            'flora_discount_mode'        => 'promo_only',
         );
 
         foreach ( $defaults as $key => $value ) {
@@ -191,6 +195,28 @@ class Flora_Activator {
             KEY status (status)
         ) $charset;";
 
+        $sql_catalog_discounts = "CREATE TABLE {$prefix}catalog_discounts (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            scope varchar(20) NOT NULL DEFAULT 'category',
+            target_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            item_type varchar(10) NOT NULL DEFAULT 'both',
+            trigger_qty int(11) NOT NULL DEFAULT 1,
+            reward_type varchar(10) NOT NULL DEFAULT 'percent',
+            free_type varchar(10) NOT NULL DEFAULT 'product',
+            free_product_id bigint(20) unsigned NOT NULL,
+            free_qty int(11) NOT NULL DEFAULT 1,
+            discount_percent decimal(5,2) NOT NULL DEFAULT 0.00,
+            discount_amount decimal(10,2) NOT NULL DEFAULT 0.00,
+            limit_per_order int(11) NOT NULL DEFAULT 0,
+            start_date date DEFAULT NULL,
+            end_date date DEFAULT NULL,
+            status varchar(20) NOT NULL DEFAULT 'active',
+            PRIMARY KEY  (id),
+            KEY scope (scope),
+            KEY target_id (target_id),
+            KEY status (status)
+        ) $charset;";
+
         $sql_orders = "CREATE TABLE {$prefix}orders (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             order_number varchar(50) NOT NULL,
@@ -301,6 +327,7 @@ class Flora_Activator {
         dbDelta( $sql_communes );
         dbDelta( $sql_shipping_rates );
         dbDelta( $sql_promotions );
+        dbDelta( $sql_catalog_discounts );
         dbDelta( $sql_orders );
         dbDelta( $sql_order_details );
         dbDelta( $sql_categories );
@@ -341,6 +368,10 @@ class Flora_Activator {
             self::upgrade_1_6_0();
         }
 
+        if ( version_compare( $installed, '1.6.2', '<' ) ) {
+            self::upgrade_1_6_2();
+        }
+
         // Création idempotente des versions arabes des pages. Elle est différée sur « init »
         // afin que $wp_rewrite et les fonctions Polylang soient disponibles (wp_insert_post sûr).
         if ( ! has_action( 'init', array( 'Flora_Activator', 'create_arabic_pages' ) ) ) {
@@ -367,6 +398,13 @@ class Flora_Activator {
     // Les tables et options sont créées par create_tables()/ensure_options() ; la création
     // des pages arabes est traitée de façon idempotente dans create_arabic_pages().
     private static function upgrade_1_6_0() {}
+
+    // Migration 1.6.2 : remplace la section « Remises sur produits » par les remises
+    // par catégorie / type / tag (table flora_catalog_discounts créée par create_tables()).
+    // La table est gérée par dbDelta ; l'ancienne option est purgée (idempotent).
+    private static function upgrade_1_6_2() {
+        delete_option( 'flora_product_discounts' );
+    }
 
     // Recrée la table wilayas si elle est absente ou corrompue, et migre les colonnes wilaya_id → wilaya_code.
     private static function migrate_wilayas_table() {

@@ -1,4 +1,4 @@
-<?php /* Vue des paramètres du plugin : devise, seuil de livraison gratuite, pages de la boutique et règles de remises sur produits / panier. */ ?>
+<?php /* Vue des paramètres du plugin : devise, seuil de livraison gratuite, pages de la boutique et remises sur panier. */ ?>
 
 <div class="wrap flora-admin">
     <h1><?php esc_html_e( 'Paramètres Flora Shop', 'flora-shop' ); ?></h1>
@@ -40,6 +40,44 @@
                         <?php endfor; ?>
                     </select>
                     <p class="description"><?php esc_html_e( 'Nombre de colonnes de la grille produits sur ordinateur (mobile : toujours 2 colonnes).', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th><label for="cart_button_fr"><?php esc_html_e( 'Bouton panier (Français)', 'flora-shop' ); ?></label></th>
+                <td>
+                    <input type="text" id="cart_button_fr" name="cart_button_fr" class="regular-text" value="<?php echo esc_attr( $cart_button_fr ); ?>">
+                    <p class="description"><?php esc_html_e( 'Libellé du lien panier affiché en français dans la boutique.', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th><label for="cart_button_ar"><?php esc_html_e( 'Bouton panier (Arabe)', 'flora-shop' ); ?></label></th>
+                <td>
+                    <input type="text" id="cart_button_ar" name="cart_button_ar" class="regular-text" value="<?php echo esc_attr( $cart_button_ar ); ?>">
+                    <p class="description"><?php esc_html_e( 'Libellé du lien panier affiché en arabe dans la boutique.', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th><label for="add_to_cart_fr"><?php esc_html_e( 'Ajouter au panier (Français)', 'flora-shop' ); ?></label></th>
+                <td>
+                    <input type="text" id="add_to_cart_fr" name="add_to_cart_fr" class="regular-text" value="<?php echo esc_attr( $add_to_cart_fr ); ?>">
+                    <p class="description"><?php esc_html_e( 'Libellé du bouton d\'ajout au panier affiché en français.', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th><label for="add_to_cart_ar"><?php esc_html_e( 'Ajouter au panier (Arabe)', 'flora-shop' ); ?></label></th>
+                <td>
+                    <input type="text" id="add_to_cart_ar" name="add_to_cart_ar" class="regular-text" value="<?php echo esc_attr( $add_to_cart_ar ); ?>">
+                    <p class="description"><?php esc_html_e( 'Libellé du bouton d\'ajout au panier affiché en arabe.', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th><label for="discount_mode"><?php esc_html_e( 'Mode de remise', 'flora-shop' ); ?></label></th>
+                <td>
+                    <select id="discount_mode" name="discount_mode">
+                        <option value="promo_only" <?php selected( $discount_mode, 'promo_only' ); ?>><?php esc_html_e( 'Promotions seulement (ignorer les remises % si une promo s\'applique)', 'flora-shop' ); ?></option>
+                        <option value="all" <?php selected( $discount_mode, 'all' ); ?>><?php esc_html_e( 'Tout cumuler (promotions + remises %)', 'flora-shop' ); ?></option>
+                    </select>
+                    <p class="description"><?php esc_html_e( 'En mode « Promotions seulement », une remise % réglée ici est ignorée dès qu\'une promotion produit/pack s\'applique au panier.', 'flora-shop' ); ?></p>
                 </td>
             </tr>
             <tr>
@@ -109,40 +147,6 @@
                 </tr>
             <?php endforeach; ?>
         </table>
-
-        <?php /* --- Règles de remise par produit (tableau de lignes dynamiques) --- */ ?>
-        <h2><?php esc_html_e( 'Remises sur produits', 'flora-shop' ); ?></h2>
-        <p class="description"><?php esc_html_e( 'Appliquer un pourcentage de remise sur un produit spécifique si la quantité est supérieure ou égale au seuil.', 'flora-shop' ); ?></p>
-        <table class="wp-list-table widefat fixed striped" id="flora-product-discounts">
-            <thead>
-                <tr>
-                    <th><?php esc_html_e( 'Produit', 'flora-shop' ); ?></th>
-                    <th style="width:150px;"><?php esc_html_e( 'Quantité min.', 'flora-shop' ); ?></th>
-                    <th style="width:150px;"><?php esc_html_e( 'Remise (%)', 'flora-shop' ); ?></th>
-                    <th style="width:80px;"><?php esc_html_e( 'Action', 'flora-shop' ); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if ( ! empty( $product_discounts ) ) : ?>
-                    <?php foreach ( $product_discounts as $i => $pd ) : ?>
-                        <tr>
-                            <td>
-                                <select name="product_discounts[<?php echo esc_attr( $i ); ?>][product_id]" class="regular-text">
-                                    <option value=""><?php esc_html_e( '-- Choisir --', 'flora-shop' ); ?></option>
-                                    <?php foreach ( $all_products as $p ) : ?>
-                                        <option value="<?php echo esc_attr( $p->id ); ?>" <?php selected( $pd['product_id'], $p->id ); ?>><?php echo esc_html( $p->name ); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                            <td><input type="number" name="product_discounts[<?php echo esc_attr( $i ); ?>][min_qty]" class="small-text" min="1" value="<?php echo esc_attr( $pd['min_qty'] ); ?>"></td>
-                            <td><input type="number" name="product_discounts[<?php echo esc_attr( $i ); ?>][percent]" class="small-text" min="1" max="100" value="<?php echo esc_attr( $pd['percent'] ); ?>"></td>
-                            <td><button type="button" class="button flora-remove-row"><?php esc_html_e( 'Supprimer', 'flora-shop' ); ?></button></td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-        <p><button type="button" class="button" id="flora-add-product-discount"><?php esc_html_e( '+ Ajouter une règle', 'flora-shop' ); ?></button></p>
 
         <?php /* --- Règles de remise sur panier (tableau de lignes dynamiques) --- */ ?>
         <h2><?php esc_html_e( 'Remises sur panier', 'flora-shop' ); ?></h2>

@@ -14,7 +14,10 @@ class Flora_Helpers {
     // Formate un montant avec la devise configurée (défaut : DZD).
     public static function format_price( $amount ) {
         $currency = get_option( 'flora_currency', 'DZD' );
-        return number_format( (float) $amount, 2, ',', ' ' ) . ' ' . $currency;
+        // Espace insécable comme séparateur de milliers afin d'éviter le retour à la ligne ;
+        // les isolates bidi (LTR) empêchent le réordonnancement du prix dans les contextes RTL (arabe).
+        $number = number_format( (float) $amount, 2, ',', "\u{a0}" );
+        return "\u{2066}" . $number . ' ' . $currency . "\u{2069}";
     }
 
     // Sanitise une chaîne de caractères (texte brut).
@@ -176,6 +179,41 @@ class Flora_Helpers {
     public static function shipping_method_label( $method ) {
         $methods = self::flora_shipping_methods();
         return isset( $methods[ $method ]['label'] ) && $methods[ $method ]['label'] ? $methods[ $method ]['label'] : '';
+    }
+
+    // Retourne le libellé du bouton/lien panier selon la langue active.
+    // Valeurs administrées (options flora_cart_button_fr / _ar) ; en arabe,
+    // si le libellé personnalisé est vide, on retombe sur le titre de page arabe.
+    public static function cart_button_label() {
+        $lang = self::get_active_lang();
+
+        if ( 'ar' === $lang ) {
+            $label = get_option( 'flora_cart_button_ar', '' );
+            if ( '' !== trim( (string) $label ) ) {
+                return $label;
+            }
+            return self::flora_page_title( 'cart', 'ar' );
+        }
+
+        $label = get_option( 'flora_cart_button_fr', '' );
+        return '' !== trim( (string) $label ) ? $label : __( 'Mon panier', 'flora-shop' );
+    }
+
+    // Retourne le libellé du bouton « Ajouter au panier » selon la langue active.
+    // Valeurs administrées (options flora_add_to_cart_fr / _ar).
+    public static function add_to_cart_label() {
+        $lang = self::get_active_lang();
+
+        $default_fr = __( 'Ajouter au panier', 'flora-shop' );
+        $default_ar = 'أضف إلى السلة';
+
+        if ( 'ar' === $lang ) {
+            $label = get_option( 'flora_add_to_cart_ar', '' );
+            return '' !== trim( (string) $label ) ? $label : $default_ar;
+        }
+
+        $label = get_option( 'flora_add_to_cart_fr', '' );
+        return '' !== trim( (string) $label ) ? $label : $default_fr;
     }
 
     // Génère le HTML d'une notice admin WordPress (succès, erreur, etc.).

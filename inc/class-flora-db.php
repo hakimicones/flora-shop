@@ -782,6 +782,50 @@ class Flora_DB {
         return $wpdb->delete( $table, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
+    // Récupère les remises catalogue (catégorie / type / tag), éventuellement uniquement
+    // les remises actives à la date du jour. Retourne un tableau d'objets.
+    public function get_catalog_discounts( $active_only = false ) {
+        global $wpdb;
+        $table = $this->table( 'catalog_discounts' );
+        $where = '';
+        if ( $active_only ) {
+            $today = current_time( 'Y-m-d' );
+            $where = $wpdb->prepare( " WHERE status = 'active' AND (start_date IS NULL OR start_date <= %s) AND (end_date IS NULL OR end_date = '0000-00-00' OR end_date >= %s)", $today, $today ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+        return $wpdb->get_results( "SELECT * FROM {$table} {$where} ORDER BY id DESC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Récupère une remise catalogue par son ID. Retourne un objet ligne ou null.
+    public function get_catalog_discount( $id ) {
+        global $wpdb;
+        $table = $this->table( 'catalog_discounts' );
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Insère une remise catalogue après normalisation de ses dates. Retourne l'ID inséré.
+    public function insert_catalog_discount( $data ) {
+        global $wpdb;
+        $table = $this->table( 'catalog_discounts' );
+        self::normalize_promotion_dates( $data );
+        $wpdb->insert( $table, $data ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        return $wpdb->insert_id;
+    }
+
+    // Met à jour une remise catalogue après normalisation de ses dates. Retourne le nombre de lignes affectées.
+    public function update_catalog_discount( $id, $data ) {
+        global $wpdb;
+        $table = $this->table( 'catalog_discounts' );
+        self::normalize_promotion_dates( $data );
+        return $wpdb->update( $table, $data, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Supprime une remise catalogue par son ID. Retourne le nombre de lignes affectées.
+    public function delete_catalog_discount( $id ) {
+        global $wpdb;
+        $table = $this->table( 'catalog_discounts' );
+        return $wpdb->delete( $table, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
     // Insère une commande et retourne l'ID inséré.
     public function insert_order( $data ) {
         global $wpdb;

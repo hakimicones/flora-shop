@@ -22,7 +22,7 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           HEADER_VERSION="$(grep -E '^\s*\*\s*Version:' flora-shop.php | sed -E 's/.*Version:[[:space:]]*([0-9][^ ]*).*/\1/')"
-          CONST_VERSION="$(grep -oE "define\( 'FLORA_SHOP_VERSION', *'[^']+'\);" flora-shop.php | sed -E "s/.*'([^']+)'.*/\1/")"
+          CONST_VERSION="$(grep -oE "define\( *'FLORA_SHOP_VERSION' *, *'[^']+' *\);" flora-shop.php | sed -E "s/.*'([^']+)'.*/\1/")"
           echo "tag=$TAG header=$HEADER_VERSION const=$CONST_VERSION"
           [ "$TAG" = "$HEADER_VERSION" ] || { echo "::error::Tag ($TAG) != Version en-tête ($HEADER_VERSION)"; exit 1; }
           [ "$TAG" = "$CONST_VERSION" ] || { echo "::error::Tag ($TAG) != FLORA_SHOP_VERSION ($CONST_VERSION)"; exit 1; }

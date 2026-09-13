@@ -243,8 +243,8 @@ class Flora_REST_Controller {
             if ( Flora_Helpers::is_method_enabled( $key ) ) {
                 $methods[] = array(
                     'method'      => $key,
-                    'label'       => $cfg['label'],
-                    'description' => isset( $cfg['description'] ) ? $cfg['description'] : '',
+                    'label'       => Flora_Helpers::shipping_method_label( $key ),
+                    'description' => Flora_Helpers::shipping_method_description( $key ),
                 );
             }
         }

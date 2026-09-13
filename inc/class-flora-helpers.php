@@ -149,14 +149,18 @@ class Flora_Helpers {
     public static function flora_shipping_methods() {
         $defaults = array(
             'home'    => array(
-                'enabled'     => 1,
-                'label'       => __( 'Livraison à domicile', 'flora-shop' ),
-                'description' => __( 'Livraison à l\'adresse indiquée (wilaya / commune).', 'flora-shop' ),
+                'enabled'        => 1,
+                'label'          => __( 'Livraison à domicile', 'flora-shop' ),
+                'label_ar'       => 'التوصيل إلى المنزل',
+                'description'    => __( 'Livraison à l\'adresse indiquée (wilaya / commune).', 'flora-shop' ),
+                'description_ar' => 'التوصيل إلى العنوان المحدد (الولاية / البلدية).',
             ),
             'liaison' => array(
-                'enabled'     => 1,
-                'label'       => __( 'Livraison au bureau de liaison', 'flora-shop' ),
-                'description' => __( 'Retrait de la commande au bureau de liaison de votre wilaya.', 'flora-shop' ),
+                'enabled'        => 1,
+                'label'          => __( 'Livraison au bureau de liaison', 'flora-shop' ),
+                'label_ar'       => 'التوصيل إلى مكتب الربط',
+                'description'    => __( 'Retrait de la commande au bureau de liaison de votre wilaya.', 'flora-shop' ),
+                'description_ar' => 'استلام الطلب من مكتب الربط الخاص بولايتك.',
             ),
         );
 
@@ -194,10 +198,37 @@ class Flora_Helpers {
         return ! $any_enabled && 'home' === $method;
     }
 
-    // Retourne le libellé d'une méthode de livraison ('' si inconnue).
+    // Retourne la traduction d'une chaîne d'interface selon la langue active.
+    // Le plugin ne charge pas de fichiers .mo : la version arabe est gérée par
+    // cet helper (FR → $ar) en fonction de Flora_Helpers::get_active_lang().
+    public static function ui( $fr, $ar ) {
+        return 'ar' === self::get_active_lang() ? $ar : $fr;
+    }
+
+    // Retourne le libellé d'une méthode de livraison dans la langue active.
     public static function shipping_method_label( $method ) {
         $methods = self::flora_shipping_methods();
-        return isset( $methods[ $method ]['label'] ) && $methods[ $method ]['label'] ? $methods[ $method ]['label'] : '';
+        if ( ! isset( $methods[ $method ] ) ) {
+            return '';
+        }
+        $cfg = $methods[ $method ];
+        if ( 'ar' === self::get_active_lang() && ! empty( $cfg['label_ar'] ) ) {
+            return $cfg['label_ar'];
+        }
+        return isset( $cfg['label'] ) && $cfg['label'] ? $cfg['label'] : '';
+    }
+
+    // Retourne la description d'une méthode de livraison dans la langue active.
+    public static function shipping_method_description( $method ) {
+        $methods = self::flora_shipping_methods();
+        if ( ! isset( $methods[ $method ] ) ) {
+            return '';
+        }
+        $cfg = $methods[ $method ];
+        if ( 'ar' === self::get_active_lang() && ! empty( $cfg['description_ar'] ) ) {
+            return $cfg['description_ar'];
+        }
+        return isset( $cfg['description'] ) ? $cfg['description'] : '';
     }
 
     // Retourne le libellé du bouton/lien panier selon la langue active.

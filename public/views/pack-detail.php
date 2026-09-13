@@ -117,12 +117,12 @@
                             <td data-cell="unit" class="flora-recap-unit"><?php echo esc_html( Flora_Helpers::format_price( $pack->pack_price ) ); ?></td>
                         </tr>
                         <tr>
-                            <td><?php esc_html_e( 'Sous-total', 'flora-shop' ); ?></td>
+                            <td><?php echo esc_html( Flora_Helpers::ui( __( 'Sous-total', 'flora-shop' ), 'المجموع الفرعي' ) ); ?></td>
                             <td data-cell="subtotal" class="flora-recap-subtotal"><?php echo esc_html( Flora_Helpers::format_price( $pack->pack_price ) ); ?></td>
                         </tr>
                         <tbody data-cell="promos"></tbody>
                         <tr class="flora-recap-total-row">
-                            <td><strong><?php esc_html_e( 'Total', 'flora-shop' ); ?></strong></td>
+                            <td><strong><?php echo esc_html( Flora_Helpers::ui( __( 'Total', 'flora-shop' ), 'المجموع' ) ); ?></strong></td>
                             <td data-cell="total" class="flora-recap-total"><strong><?php echo esc_html( Flora_Helpers::format_price( $pack->pack_price ) ); ?></strong></td>
                         </tr>
                     </table>

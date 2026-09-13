@@ -58,14 +58,18 @@ class Flora_Activator {
     private static function default_shipping_methods() {
         return array(
             'home'    => array(
-                'enabled'     => 1,
-                'label'       => __( 'Livraison à domicile', 'flora-shop' ),
-                'description' => __( 'Livraison à l\'adresse indiquée (wilaya / commune).', 'flora-shop' ),
+                'enabled'        => 1,
+                'label'          => __( 'Livraison à domicile', 'flora-shop' ),
+                'label_ar'       => 'التوصيل إلى المنزل',
+                'description'    => __( 'Livraison à l\'adresse indiquée (wilaya / commune).', 'flora-shop' ),
+                'description_ar' => 'التوصيل إلى العنوان المحدد (الولاية / البلدية).',
             ),
             'liaison' => array(
-                'enabled'     => 1,
-                'label'       => __( 'Livraison au bureau de liaison', 'flora-shop' ),
-                'description' => __( 'Retrait de la commande au bureau de liaison de votre wilaya.', 'flora-shop' ),
+                'enabled'        => 1,
+                'label'          => __( 'Livraison au bureau de liaison', 'flora-shop' ),
+                'label_ar'       => 'التوصيل إلى مكتب الربط',
+                'description'    => __( 'Retrait de la commande au bureau de liaison de votre wilaya.', 'flora-shop' ),
+                'description_ar' => 'استلام الطلب من مكتب الربط الخاص بولايتك.',
             ),
         );
     }

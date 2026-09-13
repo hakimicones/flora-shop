@@ -29,7 +29,7 @@
                     <?php if ( get_option( 'flora_show_order_email', 1 ) ) : ?>
                         <tr><td><?php esc_html_e( 'Email', 'flora-shop' ); ?></td><td><?php echo esc_html( $order->email ); ?></td></tr>
                     <?php endif; ?>
-                    <tr><td><?php esc_html_e( 'Méthode de livraison', 'flora-shop' ); ?></td><td><?php echo esc_html( Flora_Helpers::shipping_method_label( $order->shipping_method ) ? Flora_Helpers::shipping_method_label( $order->shipping_method ) : $order->shipping_method ); ?></td></tr>
+                    <tr><td><?php echo esc_html( Flora_Helpers::ui( __( 'Méthode de livraison', 'flora-shop' ), 'طريقة التوصيل' ) ); ?></td><td><?php echo esc_html( Flora_Helpers::shipping_method_label( $order->shipping_method ) ? Flora_Helpers::shipping_method_label( $order->shipping_method ) : $order->shipping_method ); ?></td></tr>
                     <?php if ( ! empty( $order->address ) ) : ?>
                         <tr><td><?php esc_html_e( 'Adresse', 'flora-shop' ); ?></td><td><?php echo esc_html( $order->address ); ?></td></tr>
                     <?php endif; ?>
@@ -40,12 +40,12 @@
             <div class="flora-confirm-card">
                 <h3><?php esc_html_e( 'Récapitulatif', 'flora-shop' ); ?></h3>
                 <table class="flora-confirm-table">
-                    <tr><td><?php esc_html_e( 'Sous-total', 'flora-shop' ); ?></td><td><?php echo esc_html( Flora_Helpers::format_price( $order->subtotal ) ); ?></td></tr>
+                    <tr><td><?php echo esc_html( Flora_Helpers::ui( __( 'Sous-total', 'flora-shop' ), 'المجموع الفرعي' ) ); ?></td><td><?php echo esc_html( Flora_Helpers::format_price( $order->subtotal ) ); ?></td></tr>
                     <?php if ( $order->discount_total > 0 ) : ?>
-                        <tr><td><?php esc_html_e( 'Remises', 'flora-shop' ); ?></td><td>- <?php echo esc_html( Flora_Helpers::format_price( $order->discount_total ) ); ?></td></tr>
+                        <tr><td><?php echo esc_html( Flora_Helpers::ui( __( 'Remises', 'flora-shop' ), 'التخفيضات' ) ); ?></td><td>- <?php echo esc_html( Flora_Helpers::format_price( $order->discount_total ) ); ?></td></tr>
                     <?php endif; ?>
-                    <tr><td><?php esc_html_e( 'Transport', 'flora-shop' ); ?></td><td><?php echo esc_html( Flora_Helpers::format_price( $order->shipping_fee ) ); ?></td></tr>
-                    <tr class="flora-total-row"><td><strong><?php esc_html_e( 'Total', 'flora-shop' ); ?></strong></td><td><strong><?php echo esc_html( Flora_Helpers::format_price( $order->total ) ); ?></strong></td></tr>
+                    <tr><td><?php echo esc_html( Flora_Helpers::ui( __( 'Transport', 'flora-shop' ), 'التوصيل' ) ); ?></td><td><?php echo esc_html( Flora_Helpers::format_price( $order->shipping_fee ) ); ?></td></tr>
+                    <tr class="flora-total-row"><td><strong><?php echo esc_html( Flora_Helpers::ui( __( 'Total', 'flora-shop' ), 'المجموع' ) ); ?></strong></td><td><strong><?php echo esc_html( Flora_Helpers::format_price( $order->total ) ); ?></strong></td></tr>
                 </table>
             </div>
         </div>

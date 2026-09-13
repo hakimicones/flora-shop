@@ -987,8 +987,8 @@ class Flora_Cart {
 
             $options[] = array(
                 'method'      => $key,
-                'label'       => $cfg['label'],
-                'description' => isset( $cfg['description'] ) ? $cfg['description'] : '',
+                'label'       => Flora_Helpers::shipping_method_label( $key ),
+                'description' => Flora_Helpers::shipping_method_description( $key ),
                 'fee'         => round( $fee, 2 ),
             );
         }

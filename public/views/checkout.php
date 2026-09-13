@@ -4,7 +4,7 @@
     la soumission est gérée par cart.js via l'endpoint REST /checkout (nonce wp_rest).
 -->
 <div class="flora-shop-wrap flora-checkout-wrap">
-    <h2><?php esc_html_e( 'Passer la commande', 'flora-shop' ); ?></h2>
+    <h2><?php echo esc_html( Flora_Helpers::ui( __( 'Passer la commande', 'flora-shop' ), 'إتمام الطلب' ) ); ?></h2>
 
     <div class="flora-checkout-layout">
         <!-- Formulaire : coordonnées du client et informations de livraison. -->
@@ -22,9 +22,10 @@
                                 <label class="flora-shipping-method">
                                     <input type="radio" name="shipping_method" value="<?php echo esc_attr( $skey ); ?>" <?php checked( 'home' === $skey ); ?>>
                                     <span >
-                                        <strong><?php echo esc_html( $scfg['label'] ); ?></strong>
-                                        <?php if ( ! empty( $scfg['description'] ) ) : ?>
-                                            <small class="memo"><?php echo esc_html( $scfg['description'] ); ?></small>
+                                        <strong><?php echo esc_html( Flora_Helpers::shipping_method_label( $skey ) ); ?></strong>
+                                        <?php $sdesc = Flora_Helpers::shipping_method_description( $skey ); ?>
+                                        <?php if ( ! empty( $sdesc ) ) : ?>
+                                            <small class="memo"><?php echo esc_html( $sdesc ); ?></small>
                                         <?php endif; ?>
                                     </span>
                                 </label>

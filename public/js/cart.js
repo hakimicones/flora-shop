@@ -216,30 +216,30 @@ function renderCartPromotions(cart) {
                     '</div></td>';
             }
 
-            html += '<td>' + (item.is_free ? 'Gratuit' : formatPrice(item.line_total)) + '</td>';
-            html += '<td>' + (item.is_free ? '' : '<button type="button" class="flora-remove-item" data-index="' + item.index + '" title="Supprimer">✕</button>') + '</td>';
+            html += '<td>' + (item.is_free ? i18n.free : formatPrice(item.line_total)) + '</td>';
+            html += '<td>' + (item.is_free ? '' : '<button type="button" class="flora-remove-item" data-index="' + item.index + '" title="' + i18n.remove + '">✕</button>') + '</td>';
             html += '</tr>';
         }
         html += '</tbody></table>';
 
         if (cart.totals) {
             html += '<div class="flora-cart-totals"><table>';
-            html += '<tr><td>Sous-total</td><td>' + formatPrice(cart.totals.subtotal) + '</td></tr>';
+            html += '<tr><td>' + i18n.subtotal + '</td><td>' + formatPrice(cart.totals.subtotal) + '</td></tr>';
             if (parseFloat(cart.totals.discount_total) > 0) {
-                html += '<tr class="flora-discount-row"><td>Remises</td><td>- ' + formatPrice(cart.totals.discount_total) + '</td></tr>';
+                html += '<tr class="flora-discount-row"><td>' + i18n.discounts + '</td><td>- ' + formatPrice(cart.totals.discount_total) + '</td></tr>';
             }
             if (parseFloat(cart.totals.shipping_fee) > 0) {
-                html += '<tr><td>Transport</td><td>' + formatPrice(cart.totals.shipping_fee) + '</td></tr>';
+                html += '<tr><td>' + i18n.shipping + '</td><td>' + formatPrice(cart.totals.shipping_fee) + '</td></tr>';
             }
-            html += '<tr class="flora-total-row"><td><strong>Total</strong></td><td><strong>' + formatPrice(cart.totals.total) + '</strong></td></tr>';
+            html += '<tr class="flora-total-row"><td><strong>' + i18n.total + '</strong></td><td><strong>' + formatPrice(cart.totals.total) + '</strong></td></tr>';
             html += '</table></div>';
         }
 
         html += renderCartPromotions(cart);
 
         html += '<div class="flora-cart-actions">' +
-            '<a href="#" class="button flora-clear-cart">Vider le panier</a>' +
-            '<a href="' + getCheckoutUrl() + '" class="button button-primary">Passer la commande</a>' +
+            '<a href="#" class="button flora-clear-cart">' + i18n.clear + '</a>' +
+            '<a href="' + getCheckoutUrl() + '" class="button button-primary">' + i18n.place_order + '</a>' +
             '</div>';
 
         $container.html(html);
@@ -309,9 +309,9 @@ function renderCartPromotions(cart) {
                     '</div>'
                 );
             }
-            row.append('<div class="flora-drawer-item-price">' + (item.is_free ? 'Gratuit' : formatPrice(item.line_total)) + '</div>');
+            row.append('<div class="flora-drawer-item-price">' + (item.is_free ? i18n.free : formatPrice(item.line_total)) + '</div>');
             if (!item.is_free) {
-                row.append('<button type="button" class="flora-remove-item" data-index="' + item.index + '" title="Supprimer">✕</button>');
+                row.append('<button type="button" class="flora-remove-item" data-index="' + item.index + '" title="' + i18n.remove + '">✕</button>');
             }
             $items.append(row);
         }
@@ -319,12 +319,12 @@ function renderCartPromotions(cart) {
         var footerHtml = '';
         if (cart.totals) {
             footerHtml += '<div class="flora-drawer-totals">';
-            footerHtml += '<div class="flora-drawer-total-row"><span>Sous-total</span><span>' + formatPrice(cart.totals.subtotal) + '</span></div>';
+            footerHtml += '<div class="flora-drawer-total-row"><span>' + i18n.subtotal + '</span><span>' + formatPrice(cart.totals.subtotal) + '</span></div>';
             if (parseFloat(cart.totals.discount_total) > 0) {
-                footerHtml += '<div class="flora-drawer-total-row flora-discount-row"><span>Remises</span><span>- ' + formatPrice(cart.totals.discount_total) + '</span></div>';
+                footerHtml += '<div class="flora-drawer-total-row flora-discount-row"><span>' + i18n.discounts + '</span><span>- ' + formatPrice(cart.totals.discount_total) + '</span></div>';
             }
-            footerHtml += '<div class="flora-drawer-total-row"><span>' + escapeHtml(getMethodLabel(cart)) + '</span><span>' + (parseFloat(cart.totals.shipping_fee) > 0 ? formatPrice(cart.totals.shipping_fee) : 'Gratuit') + '</span></div>';
-            footerHtml += '<div class="flora-drawer-total-row flora-drawer-grand-total"><span><strong>Total</strong></span><span><strong>' + formatPrice(cart.totals.total) + '</strong></span></div>';
+            footerHtml += '<div class="flora-drawer-total-row"><span>' + escapeHtml(getMethodLabel(cart)) + '</span><span>' + (parseFloat(cart.totals.shipping_fee) > 0 ? formatPrice(cart.totals.shipping_fee) : i18n.free) + '</span></div>';
+            footerHtml += '<div class="flora-drawer-total-row flora-drawer-grand-total"><span><strong>' + i18n.total + '</strong></span><span><strong>' + formatPrice(cart.totals.total) + '</strong></span></div>';
             footerHtml += '</div>';
         }
         footerHtml += '<div class="flora-drawer-actions">' +
@@ -370,7 +370,7 @@ $(document).on('keydown', function(e) {
         for (var i = 0; i < options.length; i++) {
             if (options[i].method === current) return options[i].label;
         }
-        return 'Transport';
+        return i18n.shipping;
     }
 
     function toggleShippingFields(method) {
@@ -389,7 +389,7 @@ $(document).on('keydown', function(e) {
             if ($radio.length === 0) continue;
             var $label = $radio.closest('.flora-shipping-method');
             $label.find('.flora-shipping-fee').remove();
-            var feeText = parseFloat(options[i].fee) > 0 ? formatPrice(options[i].fee) : 'Gratuit';
+            var feeText = parseFloat(options[i].fee) > 0 ? formatPrice(options[i].fee) : i18n.free;
             $label.find('small').first().after(' <span class="flora-shipping-fee">(' + feeText + ')</span>');
         }
     }
@@ -459,7 +459,7 @@ $(document).on('keydown', function(e) {
         }
 
         if (!cart.items || cart.items.length === 0) {
-            $container.html('<p>Aucun article dans le panier.</p>');
+            $container.html('<p>' + i18n.empty_items + '</p>');
             return;
         }
 
@@ -468,26 +468,26 @@ $(document).on('keydown', function(e) {
             var item = cart.items[i];
             html += '<tr class="' + (item.is_free ? 'flora-summary-free' : '') + '">';
             html += '<td>' + escapeHtml(item.name);
-            if (item.is_free) html += ' <span class="flora-badge-free">GRATUIT</span>';
+            if (item.is_free) html += ' <span class="flora-badge-free">' + i18n.free + '</span>';
             html += '</td>';
             html += '<td>x' + item.quantity + '</td>';
-            html += '<td>' + (item.is_free ? 'Gratuit' : formatPrice(item.line_total)) + '</td>';
+            html += '<td>' + (item.is_free ? i18n.free : formatPrice(item.line_total)) + '</td>';
             html += '</tr>';
         }
         html += '</table>';
 
         if (cart.totals) {
             html += '<table class="flora-summary-totals">';
-            html += '<tr><td>Sous-total</td><td>' + formatPrice(cart.totals.subtotal) + '</td></tr>';
+            html += '<tr><td>' + i18n.subtotal + '</td><td>' + formatPrice(cart.totals.subtotal) + '</td></tr>';
             if (parseFloat(cart.totals.discount_total) > 0) {
-                html += '<tr class="flora-discount-row"><td>Remises</td><td>- ' + formatPrice(cart.totals.discount_total) + '</td></tr>';
+                html += '<tr class="flora-discount-row"><td>' + i18n.discounts + '</td><td>- ' + formatPrice(cart.totals.discount_total) + '</td></tr>';
             }
             if (parseFloat(cart.totals.shipping_fee) > 0) {
                 html += '<tr><td>' + escapeHtml(getMethodLabel(cart)) + '</td><td>' + formatPrice(cart.totals.shipping_fee) + '</td></tr>';
             } else {
-                html += '<tr><td>' + escapeHtml(getMethodLabel(cart)) + '</td><td>Gratuit</td></tr>';
+                html += '<tr><td>' + escapeHtml(getMethodLabel(cart)) + '</td><td>' + i18n.free + '</td></tr>';
             }
-            html += '<tr class="flora-total-row"><td><strong>Total</strong></td><td><strong>' + formatPrice(cart.totals.total) + '</strong></td></tr>';
+            html += '<tr class="flora-total-row"><td><strong>' + i18n.total + '</strong></td><td><strong>' + formatPrice(cart.totals.total) + '</strong></td></tr>';
             html += '</table>';
         }
 

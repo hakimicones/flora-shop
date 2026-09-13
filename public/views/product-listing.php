@@ -16,6 +16,9 @@
     if ( $grid_columns < 2 || $grid_columns > 5 ) {
         $grid_columns = 4;
     }
+
+    $show_card_description   = (bool) get_option( 'flora_show_card_description', 1 );
+    $show_card_pack_contents = (bool) get_option( 'flora_show_card_pack_contents', 1 );
     ?>
 
     <!-- En-tête : titre de la section (selon le type affiché) et lien vers le panier. -->
@@ -55,7 +58,7 @@
                     <div class="flora-product-info">
                         <h3><a href="<?php echo esc_url( $product_detail_url ); ?>" class="flora-product-title-link"><?php echo esc_html( $p->name ); ?></a></h3>
                         <p class="flora-product-price"><?php echo esc_html( Flora_Helpers::format_price( $p->price ) ); ?></p>
-                        <?php if ( $p->description ) : ?>
+                        <?php if ( $show_card_description && $p->description ) : ?>
                             <p class="flora-product-desc"><?php echo esc_html( wp_trim_words( $p->description, 20 ) ); ?></p>
                         <?php endif; ?>
                         <?php if ( $p->stock_status !== 'outofstock' ) : ?>
@@ -106,10 +109,10 @@
                     <div class="flora-product-info">
                         <h3><a href="<?php echo esc_url( $pack_detail_url ); ?>" class="flora-product-title-link"><?php echo esc_html( $pk->name ); ?></a></h3>
                         <p class="flora-product-price"><?php echo esc_html( Flora_Helpers::format_price( $pk->pack_price ) ); ?></p>
-                        <?php if ( $pk->description ) : ?>
+                        <?php if ( $show_card_description && $pk->description ) : ?>
                             <p class="flora-product-desc"><?php echo esc_html( wp_trim_words( $pk->description, 20 ) ); ?></p>
                         <?php endif; ?>
-                        <?php if ( ! empty( $pack_products_list ) ) : ?>
+                        <?php if ( $show_card_pack_contents && ! empty( $pack_products_list ) ) : ?>
                             <ul class="flora-pack-contents">
                                 <?php foreach ( $pack_products_list as $pp ) :
                                     $pp_prod = $db->localize_item( $db->get_product( $pp->product_id ), 'product' );

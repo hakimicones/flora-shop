@@ -44,6 +44,8 @@ class Flora_Activator {
             'flora_add_to_cart_fr'       => 'Ajouter au panier',
             'flora_add_to_cart_ar'       => 'أضف إلى السلة',
             'flora_discount_mode'        => 'promo_only',
+            'flora_show_card_description' => 1,
+            'flora_show_card_pack_contents' => 1,
         );
 
         foreach ( $defaults as $key => $value ) {

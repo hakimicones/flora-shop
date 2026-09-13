@@ -34,6 +34,8 @@ class Flora_Admin_Settings {
         $add_to_cart_fr          = get_option( 'flora_add_to_cart_fr', 'Ajouter au panier' );
         $add_to_cart_ar          = get_option( 'flora_add_to_cart_ar', 'أضف إلى السلة' );
         $discount_mode           = get_option( 'flora_discount_mode', 'promo_only' );
+        $show_card_description   = get_option( 'flora_show_card_description', 1 );
+        $show_card_pack_contents = get_option( 'flora_show_card_pack_contents', 1 );
 
         // Pages associées à chaque étape de la boutique (IDs résolus par les helpers).
         $flora_pages = array();
@@ -84,6 +86,10 @@ class Flora_Admin_Settings {
 
             // Affichage de l'email du client sur la page de confirmation (case à cocher : absent = 0).
             update_option( 'flora_show_order_email', empty( $_POST['show_order_email'] ) ? 0 : 1 );
+
+            // Affichage de la description et du contenu des packs sur les cartes de la boutique.
+            update_option( 'flora_show_card_description', empty( $_POST['show_card_description'] ) ? 0 : 1 );
+            update_option( 'flora_show_card_pack_contents', empty( $_POST['show_card_pack_contents'] ) ? 0 : 1 );
 
             // CSS personnalisé : les balises HTML (<style>, </style>, etc.) sont retirées
             // pour empêcher toute échappée de contexte HTML ; le CSS lui-même est conservé.

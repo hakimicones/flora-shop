@@ -50,6 +50,24 @@
                 </td>
             </tr>
             <tr>
+                <th><?php esc_html_e( 'Description sur les cartes', 'flora-shop' ); ?></th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="show_card_description" value="1" <?php checked( $show_card_description ); ?>>
+                        <?php esc_html_e( 'Afficher la description des produits et packs sur les cartes de la boutique', 'flora-shop' ); ?>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th><?php esc_html_e( 'Contenu des packs', 'flora-shop' ); ?></th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="show_card_pack_contents" value="1" <?php checked( $show_card_pack_contents ); ?>>
+                        <?php esc_html_e( 'Afficher le contenu des packs sur les cartes de la boutique', 'flora-shop' ); ?>
+                    </label>
+                </td>
+            </tr>
+            <tr>
                 <th><label for="cart_button_fr"><?php esc_html_e( 'Bouton panier (Français)', 'flora-shop' ); ?></label></th>
                 <td>
                     <input type="text" id="cart_button_fr" name="cart_button_fr" class="regular-text" value="<?php echo esc_attr( $cart_button_fr ); ?>">

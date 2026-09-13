@@ -6,8 +6,13 @@ jQuery(document).ready(function($) {
     var i18n = floraShop.i18n;
 
     function floraApi(method, endpoint, data) {
+        var url = api + endpoint;
+        var sep = url.indexOf('?') === -1 ? '?' : '&';
+        if (floraShop.lang) {
+            url += sep + 'lang=' + encodeURIComponent(floraShop.lang);
+        }
         return $.ajax({
-            url: api + endpoint,
+            url: url,
             method: method,
             headers: { 'X-WP-Nonce': nonce },
             contentType: 'application/json',
@@ -631,10 +636,11 @@ $(document).on('keydown', function(e) {
     // ========== HELPERS ==========
     function formatPrice(amount) {
         // Même format que Flora_Helpers::format_price() : deux décimales, espace insécable comme
-        // séparateur de milliers, devise collée, et isolates bidi LTR pour éviter le réordonnancement RTL.
+        // séparateur de milliers, devise collée. En arabe, l'isolate RTL place le symbole à gauche.
         var n = parseFloat(amount || 0).toFixed(2).split('.');
         n[0] = n[0].replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0');
-        return '\u2066' + n.join(',') + ' DZD\u2069';
+        var iso = floraShop.currencyRtl ? '\u2067' : '\u2066';
+        return iso + n.join(',') + ' ' + floraShop.currency + '\u2069';
     }
 
     function escapeHtml(str) {

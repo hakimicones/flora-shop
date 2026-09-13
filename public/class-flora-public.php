@@ -48,6 +48,9 @@ class Flora_Public {
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'restUrl' => rest_url( 'flora-shop/v1/' ),
             'nonce'   => wp_create_nonce( 'wp_rest' ),
+            'currency'    => Flora_Helpers::currency(),
+            'currencyRtl' => 'ar' === Flora_Helpers::get_active_lang() ? 1 : 0,
+            'lang'        => Flora_Helpers::get_active_lang(),
             'pageUrls' => array(
                 'checkout'      => Flora_Helpers::get_page_url( 'checkout' ),
                 'orderConfirm'  => Flora_Helpers::get_page_url( 'order_confirm' ),

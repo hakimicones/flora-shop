@@ -30,9 +30,10 @@ class Flora_Helpers {
         // les isolates bidi (LTR) empêchent le réordonnancement du prix dans les contextes RTL (arabe).
         $number = number_format( (float) $amount, 2, ',', "\u{a0}" );
 
-        // En arabe, le symbole de la devise est placé à gauche du montant.
+        // En arabe, le symbole de la devise est placé à gauche du montant : l'isolate RTL
+        // fait remonter le montant à droite et le symbole à gauche (ordre logique montant + symbole).
         if ( 'ar' === self::get_active_lang() ) {
-            return "\u{2067}" . $currency . ' ' . $number . "\u{2069}";
+            return "\u{2067}" . $number . ' ' . $currency . "\u{2069}";
         }
 
         return "\u{2066}" . $number . ' ' . $currency . "\u{2069}";

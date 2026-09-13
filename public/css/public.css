@@ -375,16 +375,12 @@
 
 .flora-product-card {
     background: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
+   
     overflow: hidden;
-    transition: box-shadow 0.2s, transform 0.2s;
+    
 }
 
-.flora-product-card:hover {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-}
+ 
 
 .flora-product-image {
     position: relative;
@@ -420,9 +416,7 @@
 }
 
 .flora-product-price {
-    font-size: 20px;
-    font-weight: 700;
-    color: #2271b1;
+    
     margin: 0 0 8px 0;
 }
 
@@ -450,10 +444,10 @@
     position: absolute;
     top: 10px;
     left: 10px;
-    background: #6f42c1;
+     
     color: #fff;
     padding: 4px 10px;
-    border-radius: 4px;
+    
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
@@ -1174,6 +1168,30 @@ body.flora-drawer-open {
     display: block !important;
 }
 
+.flora-product-card {
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.flora-product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+}
+.flora-product-price {
+  font-size: 22px;
+  font-weight: 700;
+  color: #7b3fe4;
+}
+.flora-badge-pack {
+  border-radius: 20px;
+  background: linear-gradient(135deg, #7b3fe4, #9d5df5);
+}
+
+.flora-add-to-cart {
+   
+  font-size: 14px !important;
+  
+}
 
 @media screen and (max-width: 480px) {
     #flora-cart-drawer {

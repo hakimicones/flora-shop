@@ -44,6 +44,7 @@ foreach ( $tables as $table ) {
 $options = array(
     'flora_shop_version',
     'flora_currency',
+    'flora_currency_ar',
     'flora_free_shipping_threshold',
     'flora_product_discounts',
     'flora_cart_discounts',

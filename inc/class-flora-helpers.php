@@ -11,9 +11,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Flora_Helpers {
 
-    // Formate un montant avec la devise configurée (défaut : DZD).
+    // Retourne le libellé de la devise selon la langue active (défaut : DZD).
+    // La langue arabe peut définir son propre libellé (ex. « دج ») via l'option flora_currency_ar.
+    public static function currency() {
+        if ( 'ar' === self::get_active_lang() ) {
+            $currency_ar = get_option( 'flora_currency_ar', '' );
+            if ( '' !== (string) $currency_ar ) {
+                return $currency_ar;
+            }
+        }
+        return get_option( 'flora_currency', 'DZD' );
+    }
+
+    // Formate un montant avec le libellé de devise de la langue active.
     public static function format_price( $amount ) {
-        $currency = get_option( 'flora_currency', 'DZD' );
+        $currency = self::currency();
         // Espace insécable comme séparateur de milliers afin d'éviter le retour à la ligne ;
         // les isolates bidi (LTR) empêchent le réordonnancement du prix dans les contextes RTL (arabe).
         $number = number_format( (float) $amount, 2, ',', "\u{a0}" );

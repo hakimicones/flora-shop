@@ -16,6 +16,13 @@
                 <td><input type="text" id="currency" name="currency" class="small-text" value="<?php echo esc_attr( $currency ); ?>"></td>
             </tr>
             <tr>
+                <th><label for="currency_ar"><?php esc_html_e( 'Devise (Arabe)', 'flora-shop' ); ?></label></th>
+                <td>
+                    <input type="text" id="currency_ar" name="currency_ar" class="small-text" value="<?php echo esc_attr( $currency_ar ); ?>" placeholder="دج">
+                    <p class="description"><?php esc_html_e( 'Libellé de la devise affiché sur la version arabe (ex. : « دج »). Laisser vide pour utiliser la devise par défaut.', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
+            <tr>
                 <th><label for="free_shipping_threshold"><?php esc_html_e( 'Seuil livraison gratuite', 'flora-shop' ); ?></label></th>
                 <td>
                     <input type="number" step="0.01" id="free_shipping_threshold" name="free_shipping_threshold" class="small-text" value="<?php echo esc_attr( $free_shipping_threshold ); ?>">

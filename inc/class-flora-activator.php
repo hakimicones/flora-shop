@@ -31,6 +31,7 @@ class Flora_Activator {
         $defaults = array(
             'flora_shop_version'         => FLORA_SHOP_VERSION,
             'flora_currency'             => 'DZD',
+            'flora_currency_ar'          => 'دج',
             'flora_free_shipping_threshold' => 0,
             'flora_cart_discounts'       => array(),
             'flora_shipping_methods'     => self::default_shipping_methods(),

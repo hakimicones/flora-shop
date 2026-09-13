@@ -21,6 +21,7 @@ class Flora_Admin_Settings {
         self::handle_actions();
 
         $currency                = get_option( 'flora_currency', 'DZD' );
+        $currency_ar             = get_option( 'flora_currency_ar', '' );
         $free_shipping_threshold = get_option( 'flora_free_shipping_threshold', 0 );
         $cart_discounts          = get_option( 'flora_cart_discounts', array() );
         $show_order_email        = get_option( 'flora_show_order_email', 1 );
@@ -56,6 +57,7 @@ class Flora_Admin_Settings {
 
             // Enregistrement des options simples, valeurs assainies avant écriture.
             update_option( 'flora_currency', Flora_Helpers::sanitize_text( $_POST['currency'] ) );
+            update_option( 'flora_currency_ar', Flora_Helpers::sanitize_text( isset( $_POST['currency_ar'] ) ? $_POST['currency_ar'] : '' ) );
             update_option( 'flora_free_shipping_threshold', Flora_Helpers::sanitize_float( $_POST['free_shipping_threshold'] ) );
 
             // Nombre de colonnes de la grille boutique : borné entre 2 et 5, défaut 4.

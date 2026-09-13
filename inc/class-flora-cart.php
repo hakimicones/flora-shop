@@ -670,10 +670,64 @@ class Flora_Cart {
         }
 
         // Mémoïsation des métadonnées (objet, catégorie, étiquettes) par article pour éviter les requêtes répétées.
-        $meta = array();
-        $tags = array();
+        $meta          = array();
+        $tags          = array();
+        $eligibilities = array(); // promo_id => array( 'qty' => int, 'base' => float )
+
+        // Passe 1 — sélection exclusive du palier par cible (même sémantique que les promotions BXGY) :
+        // pour chaque cible (scope + cible + type d'article), seule la règle au trigger_qty le plus
+        // élevé atteint s'applique. Deux règles « 3 packs → 500 » et « 4 packs → 2000 » ne se cumulent pas.
+        $grouped  = array();
+        $selected = array();
 
         foreach ( $promos as $promo ) {
+            $scope       = $promo->scope ? $promo->scope : 'category';
+            $target_id   = absint( $promo->target_id );
+            $item_type   = $promo->item_type ? $promo->item_type : 'both';
+            $trigger_qty = absint( $promo->trigger_qty );
+
+            if ( $trigger_qty <= 0 || ! in_array( $scope, array( 'category', 'type', 'tag' ), true ) ) {
+                continue;
+            }
+
+            $elig = self::catalog_eligibility( $scope, $target_id, $item_type, $cart, $meta, $tags );
+
+            if ( ! $elig || $elig['qty'] < $trigger_qty ) {
+                continue;
+            }
+
+            $eligibilities[ absint( $promo->id ) ] = $elig;
+
+            $target_key               = $scope . ':' . $target_id . ':' . $item_type;
+            $grouped[ $target_key ][] = $promo;
+        }
+
+        foreach ( $grouped as $promos_group ) {
+            $max_qty = 0;
+            foreach ( $promos_group as $p ) {
+                $max_qty = max( $max_qty, absint( $p->trigger_qty ) );
+            }
+
+            $candidates = array();
+            foreach ( $promos_group as $p ) {
+                if ( absint( $p->trigger_qty ) === $max_qty ) {
+                    $candidates[] = $p;
+                }
+            }
+
+            $best = self::pick_best_promo( $candidates );
+            if ( $best ) {
+                $selected[] = absint( $best->id );
+            }
+        }
+
+        // Passe 2 — application des règles sélectionnées pour la cible.
+        foreach ( $promos as $promo ) {
+            $promo_id = absint( $promo->id );
+            if ( ! in_array( $promo_id, $selected, true ) || ! isset( $eligibilities[ $promo_id ] ) ) {
+                continue;
+            }
+
             $scope       = $promo->scope ? $promo->scope : 'category';
             $target_id   = absint( $promo->target_id );
             $item_type   = $promo->item_type ? $promo->item_type : 'both';
@@ -681,60 +735,8 @@ class Flora_Cart {
             $reward_type = $promo->reward_type ? $promo->reward_type : 'percent';
             $limit       = absint( $promo->limit_per_order );
 
-            if ( $trigger_qty <= 0 || ! in_array( $scope, array( 'category', 'type', 'tag' ), true ) ) {
-                continue;
-            }
-
-            $eligible_qty  = 0;
-            $eligible_base = 0;
-
-            foreach ( $cart['items'] as $item ) {
-                if ( 'free_item' === $item['type'] || 'free_pack' === $item['type'] ) {
-                    continue;
-                }
-
-                $item_key = $item['type'] . ':' . $item['id'];
-
-                if ( ! isset( $meta[ $item_key ] ) ) {
-                    $meta[ $item_key ] = 'pack' === $item['type'] ? $db->get_pack( $item['id'] ) : $db->get_product( $item['id'] );
-                }
-
-                $object = $meta[ $item_key ];
-                if ( ! $object ) {
-                    continue;
-                }
-
-                $matches = false;
-
-                if ( 'type' === $scope ) {
-                    $matches = ( $item_type === $item['type'] );
-                } elseif ( 'category' === $scope ) {
-                    $matches = ( in_array( $item['type'], array( 'product', 'pack' ), true )
-                        && ( 'both' === $item_type || $item_type === $item['type'] )
-                        && absint( $object->category_id ) === $target_id );
-                } else {
-                    if ( ! isset( $tags[ $item_key ] ) ) {
-                        $tags[ $item_key ] = array_map( 'absint', $db->get_item_tags( $item['type'], $item['id'] ) );
-                    }
-                    $matches = ( in_array( $item['type'], array( 'product', 'pack' ), true )
-                        && ( 'both' === $item_type || $item_type === $item['type'] )
-                        && in_array( $target_id, $tags[ $item_key ], true ) );
-                }
-
-                if ( ! $matches ) {
-                    continue;
-                }
-
-                $unit_price = 'pack' === $item['type'] ? (float) $object->pack_price : (float) $object->price;
-                $qty        = absint( $item['quantity'] );
-
-                $eligible_qty  += $qty;
-                $eligible_base += $unit_price * $qty;
-            }
-
-            if ( $eligible_qty < $trigger_qty ) {
-                continue;
-            }
+            $eligible_qty  = $eligibilities[ $promo_id ]['qty'];
+            $eligible_base = $eligibilities[ $promo_id ]['base'];
 
             // Nombre de lots éligibles = quantité éligible / quantité déclencheur (entier inférieur),
             // plafonné par la limite par commande (même sémantique que les promotions BXGY).
@@ -766,7 +768,7 @@ class Flora_Cart {
                 }
 
                 $lines[] = array(
-                    'id'     => absint( $promo->id ),
+                    'id'     => $promo_id,
                     'title'  => sprintf( __( '%s%% de réduction sur %s', 'flora-shop' ), rtrim( rtrim( number_format( $percent, 2, '.', '' ), '0' ), '.' ), $target_label ),
                     'amount' => round( $amount, 2 ),
                 );
@@ -789,7 +791,7 @@ class Flora_Cart {
                 }
 
                 $lines[] = array(
-                    'id'     => absint( $promo->id ),
+                    'id'     => $promo_id,
                     'title'  => sprintf( __( 'Réduction de %s sur %s', 'flora-shop' ), Flora_Helpers::format_price( $discount_per_set ), $target_label ),
                     'amount' => round( $amount, 2 ),
                 );
@@ -832,6 +834,61 @@ class Flora_Cart {
         }
 
         return $lines;
+    }
+
+    // Calcule la quantité éligible et le sous-total des articles du panier correspondant à la cible
+    // d'une remise catalogue (catégorie, type produit/pack ou étiquette). Retourne un tableau
+    // array( 'qty' => int, 'base' => float ) ou null si aucun article n'est éligible.
+    private static function catalog_eligibility( $scope, $target_id, $item_type, &$cart, &$meta, &$tags ) {
+        $db    = Flora_DB::get_instance();
+        $qty   = 0;
+        $base  = 0;
+
+        foreach ( $cart['items'] as $item ) {
+            if ( 'free_item' === $item['type'] || 'free_pack' === $item['type'] ) {
+                continue;
+            }
+
+            $item_key = $item['type'] . ':' . $item['id'];
+
+            if ( ! isset( $meta[ $item_key ] ) ) {
+                $meta[ $item_key ] = 'pack' === $item['type'] ? $db->get_pack( $item['id'] ) : $db->get_product( $item['id'] );
+            }
+
+            $object = $meta[ $item_key ];
+            if ( ! $object ) {
+                continue;
+            }
+
+            $matches = false;
+
+            if ( 'type' === $scope ) {
+                $matches = ( $item_type === $item['type'] );
+            } elseif ( 'category' === $scope ) {
+                $matches = ( in_array( $item['type'], array( 'product', 'pack' ), true )
+                    && ( 'both' === $item_type || $item_type === $item['type'] )
+                    && absint( $object->category_id ) === $target_id );
+            } else {
+                if ( ! isset( $tags[ $item_key ] ) ) {
+                    $tags[ $item_key ] = array_map( 'absint', $db->get_item_tags( $item['type'], $item['id'] ) );
+                }
+                $matches = ( in_array( $item['type'], array( 'product', 'pack' ), true )
+                    && ( 'both' === $item_type || $item_type === $item['type'] )
+                    && in_array( $target_id, $tags[ $item_key ], true ) );
+            }
+
+            if ( ! $matches ) {
+                continue;
+            }
+
+            $unit_price = 'pack' === $item['type'] ? (float) $object->pack_price : (float) $object->price;
+            $item_qty   = absint( $item['quantity'] );
+
+            $qty  += $item_qty;
+            $base += $unit_price * $item_qty;
+        }
+
+        return $qty > 0 ? array( 'qty' => $qty, 'base' => $base ) : null;
     }
 
     // Libellé lisible de la cible d'une remise catalogue (catégorie, type produit/pack ou étiquette).

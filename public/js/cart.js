@@ -268,6 +268,7 @@ function renderCartPromotions(cart) {
         if ($items.length === 0) return;
 
         if (!cart) {
+            $items.html('<div class="flora-drawer-loading" style="text-align:center;padding:24px;color:#646970;"><span class="flora-spinner"></span></div>');
             floraApi('GET', 'cart').done(function(data) { renderCartDrawer(data); });
             return;
         }
@@ -454,6 +455,7 @@ $(document).on('keydown', function(e) {
         if ($container.length === 0) return;
 
         if (!cart) {
+            $container.html('<div style="text-align:center;padding:12px;color:#646970;"><span class="flora-spinner"></span></div>');
             floraApi('GET', 'cart').done(function(data) { renderCheckoutSummary(data); });
             return;
         }

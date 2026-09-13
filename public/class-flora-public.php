@@ -44,6 +44,13 @@ class Flora_Public {
             wp_add_inline_style( 'flora-public', $custom_css );
         }
 
+        // Spinner de chargement : animation pendant les appels REST du panier.
+        wp_add_inline_style( 'flora-public', '
+.flora-spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(0,0,0,.15);border-top-color:#0073aa;border-radius:50%;animation:flora-spin .8s linear infinite;vertical-align:middle;margin-right:8px;}
+.flora-cart-loading{display:flex;align-items:center;justify-content:center;min-height:120px;}
+@keyframes flora-spin{to{transform:rotate(360deg);}}
+' );
+
         wp_localize_script( 'flora-public', 'floraShop', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'restUrl' => rest_url( 'flora-shop/v1/' ),

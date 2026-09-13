@@ -7,6 +7,6 @@
     <h2><?php esc_html_e( 'Votre Panier', 'flora-shop' ); ?></h2>
     <!-- Zone injectée : liste des articles, quantités, totaux et boutons d'action. -->
     <div id="flora-cart-content">
-        <div class="flora-cart-loading"><?php esc_html_e( 'Chargement du panier...', 'flora-shop' ); ?></div>
+        <div class="flora-cart-loading"><span class="flora-spinner"></span><?php esc_html_e( 'Chargement du panier...', 'flora-shop' ); ?></div>
     </div>
 </div>

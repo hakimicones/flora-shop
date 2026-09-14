@@ -78,11 +78,24 @@ class Flora_Admin_Categories {
     }
 
     private static function render_list() {
-        // Affiche la liste des catégories via la vue dédiée.
-        $db         = Flora_DB::get_instance();
-        $categories = $db->get_categories();
+        $db = Flora_DB::get_instance();
+
+        $search      = isset( $_GET['flora_s'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $categories  = $db->get_categories( array( 'search' => $search ) );
 
         include FLORA_SHOP_PATH . 'admin/views/categories-list.php';
+    }
+
+    // Export Excel des catégories (recherche filtrée).
+    public static function export() {
+        $db    = Flora_DB::get_instance();
+        $search = isset( $_GET['flora_s'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $all   = $db->get_categories( array( 'search' => $search ) );
+        $rows  = array();
+        foreach ( $all as $c ) {
+            $rows[] = array( (int) $c->id, $c->name, $c->slug, (int) $c->sort_order );
+        }
+        Flora_Exporter::handle_export( 'flora-categories.xlsx', array( 'ID', 'Nom', 'Slug', 'Ordre' ), $rows );
     }
 
     private static function render_form( $action ) {

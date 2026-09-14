@@ -19,12 +19,10 @@ class Flora_Admin_Shipping {
 
         self::handle_actions();
 
-        $db       = Flora_DB::get_instance();
-        $tab      = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'wilayas'; // phpcs:ignore WordPress.Security.NonceVerification
-        $wilayas  = $db->get_wilayas();
-        $rates    = $db->get_all_shipping_rates();
-
-        // Configuration des méthodes de livraison (activation, libellés, descriptions).
+        $db               = Flora_DB::get_instance();
+        $tab              = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'wilayas'; // phpcs:ignore WordPress.Security.NonceVerification
+        $wilayas          = $db->get_wilayas();
+        $rates            = $db->get_all_shipping_rates();
         $shipping_methods = Flora_Helpers::flora_shipping_methods();
 
         $wilaya_map = array();
@@ -32,7 +30,76 @@ class Flora_Admin_Shipping {
             $wilaya_map[ $w->code ] = $w;
         }
 
+        // Filtres de l'onglet communes.
+        $commune_search = isset( $_GET['flora_s'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $commune_wilaya = isset( $_GET['flora_wilaya'] ) ? absint( $_GET['flora_wilaya'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
+
+        $all_communes   = array();
+        $total_communes = 0;
+
+        if ( 'communes' === $tab ) {
+            $commune_args              = array( 'search' => $commune_search );
+            $total_communes            = $db->count_communes( $commune_wilaya, $commune_args );
+            $commune_args['limit']     = Flora_Admin_List::per_page();
+            $commune_args['offset']    = Flora_Admin_List::offset();
+            $all_communes              = $db->get_communes( $commune_wilaya, $commune_args );
+        }
+
         include FLORA_SHOP_PATH . 'admin/views/shipping.php';
+    }
+
+    // Export Excel de l'onglet courant (wilayas, communes ou tarifs). Intercepté
+    // par Flora_Admin::handle_export() avant tout rendu HTML de la page admin.
+    public static function export() {
+        $db         = Flora_DB::get_instance();
+        $tab        = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'wilayas'; // phpcs:ignore WordPress.Security.NonceVerification
+        $wilaya_map = array();
+        foreach ( $db->get_wilayas() as $w ) {
+            $wilaya_map[ $w->code ] = $w;
+        }
+        self::handle_export( $tab, $db, $wilaya_map );
+    }
+
+    // Téléverse l'export Excel de l'onglet courant (wilayas, communes ou tarifs).
+    private static function handle_export( $tab, $db, $wilaya_map ) {
+        if ( 'wilayas' === $tab ) {
+            $all = $db->get_wilayas();
+            $rows = array();
+            foreach ( $all as $w ) {
+                $rows[] = array( (int) $w->code, $w->name, $w->name_ar, $w->latitude, $w->longitude );
+            }
+            Flora_Exporter::handle_export( 'flora-wilayas.xlsx', array( 'Code', 'Nom', 'Nom arabe', 'Latitude', 'Longitude' ), $rows );
+        }
+
+        if ( 'communes' === $tab ) {
+            $search = isset( $_GET['flora_s'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+            $wilaya = isset( $_GET['flora_wilaya'] ) ? absint( $_GET['flora_wilaya'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
+            $all    = $db->get_communes( $wilaya, array( 'search' => $search ) );
+            $rows   = array();
+            foreach ( $all as $c ) {
+                $w_name = isset( $wilaya_map[ $c->wilaya_code ] ) ? $wilaya_map[ $c->wilaya_code ]->name : '';
+                $rows[] = array( $c->post_code, $w_name, $c->name, $c->name_ar, $c->daira, $c->daira_ar );
+            }
+            Flora_Exporter::handle_export( 'flora-communes.xlsx', array( 'Code postal', 'Wilaya', 'Commune', 'Nom arabe', 'Daïra', 'Daïra arabe' ), $rows );
+        }
+
+        if ( 'rates' === $tab ) {
+            $all = $db->get_all_shipping_rates();
+            $all_communes_map = array();
+            foreach ( $wilaya_map as $w ) {
+                $ccs = $db->get_communes( $w->code );
+                foreach ( $ccs as $cc ) {
+                    $all_communes_map[ $cc->id ] = $cc->name;
+                }
+            }
+            $rows = array();
+            foreach ( $all as $r ) {
+                $w_name = isset( $wilaya_map[ $r->wilaya_code ] ) ? $wilaya_map[ $r->wilaya_code ]->name : $r->wilaya_code;
+                $c_name = $r->commune_id > 0 && isset( $all_communes_map[ $r->commune_id ] ) ? $all_communes_map[ $r->commune_id ] : '—';
+                $rows[] = array( $w_name, $c_name, (float) $r->base_fee, (float) $r->per_kg_fee, (float) $r->bureau_fee, (float) $r->bureau_per_kg_fee );
+            }
+            Flora_Exporter::handle_export( 'flora-tarifs.xlsx', array( 'Wilaya', 'Commune', 'Frais fixe domicile', 'Frais/kg domicile', 'Frais fixe bureau', 'Frais/kg bureau' ), $rows );
+        }
     }
 
     private static function handle_actions() {

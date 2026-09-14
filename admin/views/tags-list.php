@@ -1,11 +1,17 @@
-<?php /* Vue de la liste des étiquettes : tableau des tags utilisables pour filtrer les articles. */ ?>
+<?php /* Vue de la liste des étiquettes : barre de filtres/export, tableau des tags. */ ?>
 
 <div class="wrap flora-admin">
     <h1 class="wp-heading-inline"><?php esc_html_e( 'Étiquettes', 'flora-shop' ); ?></h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-tags&action=add' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Ajouter une étiquette', 'flora-shop' ); ?></a>
     <hr class="wp-header-end">
 
-    <p class="description"><?php esc_html_e( 'Les étiquettes servent au filtrage des produits et packs via le shortcode de la boutique (ex : tag "promo").', 'flora-shop' ); ?></p>
+    <?php
+    Flora_Admin_List::bar( array(
+        'page'        => 'flora-tags',
+        'search'      => $search,
+        'export_args' => array( 'page' => 'flora-tags', 'flora_s' => $search ),
+    ) );
+    ?>
 
     <table class="wp-list-table widefat fixed striped">
         <thead>
@@ -25,7 +31,6 @@
                         <td><?php echo esc_html( $tag->id ); ?></td>
                         <td><?php echo esc_html( $tag->name ); ?></td>
                         <td><code><?php echo esc_html( $tag->slug ); ?></code></td>
-                        <?php /* --- Colonne actions : lien modifier + formulaire de suppression --- */ ?>
                         <td>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-tags&action=edit&id=' . $tag->id ) ); ?>"><?php esc_html_e( 'Modifier', 'flora-shop' ); ?></a> |
                             <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Supprimer cette étiquette ?', 'flora-shop' ); ?>');">

@@ -107,14 +107,101 @@ class Flora_Admin_Catalog_Discounts {
     }
 
     private static function render_list() {
-        $db          = Flora_DB::get_instance();
-        $discounts   = $db->get_catalog_discounts();
-        $categories  = $db->get_categories();
-        $tags        = $db->get_tags();
-        $all_products = $db->get_products();
-        $all_packs    = $db->get_packs( array( 'status' => '' ) );
+        $db = Flora_DB::get_instance();
+
+        $args          = self::get_list_args();
+        $total         = $db->count_catalog_discounts( $args );
+        $discounts     = $db->get_catalog_discounts( $args );
+        $categories    = $db->get_categories();
+        $tags          = $db->get_tags();
+        $all_products  = $db->get_products();
+        $all_packs     = $db->get_packs( array( 'status' => '' ) );
 
         include FLORA_SHOP_PATH . 'admin/views/catalog-discounts-list.php';
+    }
+
+    // Export Excel des remises catalogue filtrées (sans pagination).
+    public static function export() {
+        $db   = Flora_DB::get_instance();
+        $args = self::get_list_args();
+        $all  = $db->get_catalog_discounts( $args );
+        $category_map = self::build_name_map( $db->get_categories() );
+        $tag_map      = self::build_name_map( $db->get_tags() );
+        $product_map  = self::build_map( $db->get_products() );
+        $pack_map     = self::build_map( $db->get_packs( array( 'status' => '' ) ) );
+        $rows = array();
+        foreach ( $all as $dc ) {
+            $rows[] = array(
+                (int) $dc->id,
+                $dc->scope,
+                self::resolve_target( $dc, $category_map, $tag_map ),
+                $dc->item_type,
+                (int) $dc->trigger_qty,
+                self::resolve_reward( $dc, $product_map, $pack_map ),
+                $dc->limit_per_order > 0 ? (int) $dc->limit_per_order : '',
+                ucfirst( $dc->status ),
+            );
+        }
+        Flora_Exporter::handle_export( 'flora-remises.xlsx', array( 'ID', 'Portée', 'Cible', 'Type article', 'Qté min', 'Récompense', 'Limite', 'Statut' ), $rows );
+    }
+
+    private static function get_list_args() {
+        $search = isset( $_GET['flora_s'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $status = isset( $_GET['flora_status'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_status'] ) ) : 'any'; // phpcs:ignore WordPress.Security.NonceVerification
+        $scope  = isset( $_GET['flora_scope'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_scope'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+
+        $args = array( 'search' => $search, 'status' => $status );
+        if ( $scope && in_array( $scope, array( 'category', 'type', 'tag' ), true ) ) {
+            $args['scope'] = $scope;
+        }
+        return $args;
+    }
+
+    private static function build_name_map( $items ) {
+        $map = array();
+        foreach ( $items as $item ) {
+            $map[ $item->id ] = $item->name;
+        }
+        return $map;
+    }
+
+    private static function build_map( $items ) {
+        $map = array();
+        foreach ( $items as $item ) {
+            $map[ $item->id ] = $item;
+        }
+        return $map;
+    }
+
+    private static function resolve_target( $dc, $category_map, $tag_map ) {
+        $scope = $dc->scope ? $dc->scope : 'category';
+        if ( 'type' === $scope ) {
+            return 'pack' === $dc->item_type ? 'Tous les packs' : 'Tous les produits';
+        }
+        $map = 'tag' === $scope ? $tag_map : $category_map;
+        $label = isset( $map[ $dc->target_id ] ) ? $map[ $dc->target_id ] : '';
+        $suffix = 'both' !== $dc->item_type ? ( 'pack' === $dc->item_type ? ' (packs)' : ' (produits)' ) : '';
+        return $label ? $label . $suffix : '';
+    }
+
+    private static function resolve_reward( $dc, $product_map, $pack_map ) {
+        $reward_type = $dc->reward_type ? $dc->reward_type : 'percent';
+        $free_type   = isset( $dc->free_type ) && $dc->free_type ? $dc->free_type : 'product';
+        if ( 'percent' === $reward_type ) {
+            return $dc->discount_percent . '%';
+        }
+        if ( 'amount' === $reward_type ) {
+            return Flora_Helpers::format_price( $dc->discount_amount );
+        }
+        if ( 'pack' === $free_type && isset( $pack_map[ $dc->free_product_id ] ) ) {
+            $label = 'Pack : ' . $pack_map[ $dc->free_product_id ]->name;
+            return $dc->free_qty > 1 ? $label . ' × ' . $dc->free_qty : $label;
+        }
+        if ( isset( $product_map[ $dc->free_product_id ] ) ) {
+            $label = 'Produit : ' . $product_map[ $dc->free_product_id ]->name;
+            return $dc->free_qty > 1 ? $label . ' × ' . $dc->free_qty : $label;
+        }
+        return esc_html__( 'Inconnu', 'flora-shop' );
     }
 
     private static function render_form( $action ) {

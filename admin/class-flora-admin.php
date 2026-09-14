@@ -19,6 +19,7 @@ class Flora_Admin {
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'admin_notices', array( $this, 'show_notices' ) );
         add_action( 'init', array( 'Flora_Admin', 'handle_import' ) );
+        add_action( 'admin_init', array( 'Flora_Admin', 'handle_export' ) );
 
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-dashboard.php';
         require_once FLORA_SHOP_PATH . 'admin/class-flora-admin-products.php';
@@ -59,6 +60,45 @@ class Flora_Admin {
         }
 
         wp_safe_redirect( admin_url( 'admin.php?page=flora-shipping&tab=wilayas&flora_notice=import_done&wilayas=' . $result['wilayas'] . '&communes=' . $result['communes'] ) );
+        exit;
+    }
+
+    // Intercepte les exports Excel dès admin_init, c'est-à-dire AVANT que
+    // admin-header.php n'ait envoyé la moindre sortie HTML : le téléchargement
+    // renvoie ainsi un .xlsx pur. Mappe le slug de page (avec son onglet) vers
+    // la méthode export de son contrôleur, puis quitte le script.
+    public static function handle_export() {
+        if ( ! isset( $_GET['flora_export'], $_GET['page'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+            return;
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Accès non autorisé.', 'flora-shop' ) );
+        }
+
+        $page = sanitize_text_field( wp_unslash( $_GET['page'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+        $tab  = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+
+        $handlers = array(
+            'flora-products'   => array( 'Flora_Admin_Products', 'export' ),
+            'flora-packs'      => array( 'Flora_Admin_Packs', 'export' ),
+            'flora-categories' => array( 'Flora_Admin_Categories', 'export' ),
+            'flora-tags'       => array( 'Flora_Admin_Tags', 'export' ),
+            'flora-shipping'   => array( 'Flora_Admin_Shipping', 'export' ),
+            'flora-orders'     => array( 'Flora_Admin_Orders', 'export' ),
+        );
+
+        // La page Promotions partage son slug avec l'onglet « Remises catalogue ».
+        if ( 'flora-promotions' === $page ) {
+            $handlers[ $page ] = 'catalog' === $tab
+                ? array( 'Flora_Admin_Catalog_Discounts', 'export' )
+                : array( 'Flora_Admin_Promotions', 'export' );
+        }
+
+        if ( isset( $handlers[ $page ] ) && is_callable( $handlers[ $page ] ) ) {
+            call_user_func( $handlers[ $page ] );
+        }
+
         exit;
     }
 

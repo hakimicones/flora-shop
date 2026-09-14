@@ -3,7 +3,7 @@
  * Plugin Name: Flora Shop
  * Plugin URI: https://flora-shop.dz
  * Description: Solution e-commerce complète avec gestion de produits, packs, promotions BXGY, transport dynamique (Wilaya/Commune) et deux méthodes de livraison.
- * Version: 1.6.14
+ * Version: 1.7.0
  * Author: A.Hakim NOUAS
  * Author URI: https://icones-software.dz
  * License: GPL v2 or later
@@ -11,7 +11,7 @@
  * Text Domain: flora-shop
  * Domain Path: /languages
  * Requires at least: 5.8
- * Requires PHP: 7.4
+ * Requires PHP: 8.1
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -19,11 +19,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes globales : version, chemins et basename du plugin.
-define( 'FLORA_SHOP_VERSION', '1.6.14' );
+define( 'FLORA_SHOP_VERSION', '1.7.0' );
 define( 'FLORA_SHOP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FLORA_SHOP_URL', plugin_dir_url( __FILE__ ) );
 define( 'FLORA_SHOP_BASENAME', plugin_basename( __FILE__ ) );
 define( 'FLORA_SHOP_FILE', __FILE__ );
+
+// Autoload Composer (PhpSpreadsheet pour les exports Excel) — chargement gardé
+// pour que le plugin reste fonctionnel si le dossier vendor est absent.
+$vendor_autoload = FLORA_SHOP_PATH . 'vendor/autoload.php';
+if ( file_exists( $vendor_autoload ) ) {
+    require_once $vendor_autoload;
+}
 
 // Chargement des fichiers communs (helpers, BDD, panier, activator, importateur).
 require_once FLORA_SHOP_PATH . 'inc/class-flora-helpers.php';
@@ -35,6 +42,8 @@ require_once FLORA_SHOP_PATH . 'inc/class-flora-importer.php';
 // Chargement conditionnel du contrôleur admin (back-office uniquement).
 if ( is_admin() ) {
     require_once FLORA_SHOP_PATH . 'inc/class-flora-updates.php';
+    require_once FLORA_SHOP_PATH . 'inc/class-flora-admin-list.php';
+    require_once FLORA_SHOP_PATH . 'inc/class-flora-exporter.php';
     require_once FLORA_SHOP_PATH . 'admin/class-flora-admin.php';
 }
 

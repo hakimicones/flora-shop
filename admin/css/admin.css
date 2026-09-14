@@ -150,6 +150,42 @@
     color: #135e96;
 }
 
+.flora-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+}
+
+.flora-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.flora-filter-field,
+.flora-search-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+.flora-result-count {
+    margin: 10px 0 6px;
+    color: #646970;
+}
+
+.flora-export-btn {
+    margin-left: auto;
+}
+
 .flora-badge-free {
     display: inline-block;
     background: #28a745;

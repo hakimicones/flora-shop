@@ -46,16 +46,18 @@ class Flora_DB {
     }
 
     // Récupère une liste de produits filtrés et paginés. Retourne un tableau d'objets.
-    public function get_products( $args = array() ) {
+    // Construit la clause WHERE des produits selon les filtres ($args) et retourne (table, where, params).
+    private function products_where( $args = array() ) {
         global $wpdb;
         $table  = $this->table( 'products' );
         $where  = "WHERE 1=1";
         $params = array();
 
-        if ( ! empty( $args['status'] ) ) {
+        // 'any' = tous les statuts (listes admin) ; sans filtre explicite = publiés (front-office).
+        if ( ! empty( $args['status'] ) && 'any' !== $args['status'] ) {
             $where   .= " AND status = %s";
             $params[] = $args['status'];
-        } else {
+        } elseif ( empty( $args['status'] ) ) {
             $where .= " AND status = 'publish'";
         }
 
@@ -76,7 +78,7 @@ class Flora_DB {
         if ( ! empty( $args['tag'] ) ) {
             $slugs = self::clean_slug_list( $args['tag'] );
             if ( $slugs ) {
-                $table_tags     = $this->table( 'tags' );
+                $table_tags      = $this->table( 'tags' );
                 $table_tag_items = $this->table( 'tag_items' );
                 $placeholders    = implode( ', ', array_fill( 0, count( $slugs ), '%s' ) );
                 $where          .= " AND EXISTS (
@@ -90,13 +92,38 @@ class Flora_DB {
             }
         }
 
+        // Recherche libre sur le nom ou le slug.
+        if ( ! empty( $args['search'] ) ) {
+            $like     = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $where   .= " AND (name LIKE %s OR slug LIKE %s)";
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        // Filtre de stock : en stock (quantité > 0) ou en rupture (quantité <= 0).
+        if ( ! empty( $args['stock_status'] ) ) {
+            if ( 'instock' === $args['stock_status'] ) {
+                $where .= " AND stock_qty > 0";
+            } elseif ( 'outofstock' === $args['stock_status'] ) {
+                $where .= " AND stock_qty <= 0";
+            }
+        }
+
+        return array( $table, $where, $params );
+    }
+
+    // Récupère une liste de produits filtrés (statut, catégorie, étiquette, recherche, stock)
+    // avec pagination optionnelle. Retourne un tableau d'objets.
+    public function get_products( $args = array() ) {
+        global $wpdb;
+        list( $table, $where, $params ) = $this->products_where( $args );
+
+        $limit = '';
         if ( ! empty( $args['limit'] ) ) {
             $limit = "LIMIT " . absint( $args['limit'] );
             if ( ! empty( $args['offset'] ) ) {
                 $limit .= " OFFSET " . absint( $args['offset'] );
             }
-        } else {
-            $limit = '';
         }
 
         $order = ! empty( $args['orderby'] ) ? sanitize_sql_orderby( $args['orderby'] ) : 'ORDER BY sort_order ASC, id DESC';
@@ -107,6 +134,18 @@ class Flora_DB {
         }
 
         return $wpdb->get_results( "SELECT * FROM {$table} {$where} {$order} {$limit}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Compte les produits selon les mêmes filtres que get_products(). Retourne un entier.
+    public function count_products( $args = array() ) {
+        global $wpdb;
+        list( $table, $where, $params ) = $this->products_where( $args );
+
+        if ( ! empty( $params ) ) {
+            return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} {$where}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} {$where}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
     // Nettoie une liste de slugs séparés par des virgules (trim + sanitize_title), en écartant les valeurs vides.
@@ -152,17 +191,18 @@ class Flora_DB {
         return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE slug = %s AND status = 'publish'", $slug ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
-    // Récupère une liste de packs filtrés par statut. Retourne un tableau d'objets.
-    public function get_packs( $args = array() ) {
+    // Construit la clause WHERE des packs selon les filtres ($args) et retourne (table, where, params).
+    private function packs_where( $args = array() ) {
         global $wpdb;
         $table  = $this->table( 'packs' );
         $where  = "WHERE 1=1";
         $params = array();
 
-        if ( ! empty( $args['status'] ) ) {
+        // 'any' = tous les statuts (listes admin) ; sans filtre explicite = publiés (front-office).
+        if ( ! empty( $args['status'] ) && 'any' !== $args['status'] ) {
             $where   .= " AND status = %s";
             $params[] = $args['status'];
-        } else {
+        } elseif ( empty( $args['status'] ) ) {
             $where .= " AND status = 'publish'";
         }
 
@@ -183,7 +223,7 @@ class Flora_DB {
         if ( ! empty( $args['tag'] ) ) {
             $slugs = self::clean_slug_list( $args['tag'] );
             if ( $slugs ) {
-                $table_tags     = $this->table( 'tags' );
+                $table_tags      = $this->table( 'tags' );
                 $table_tag_items = $this->table( 'tag_items' );
                 $placeholders    = implode( ', ', array_fill( 0, count( $slugs ), '%s' ) );
                 $where          .= " AND EXISTS (
@@ -197,14 +237,51 @@ class Flora_DB {
             }
         }
 
+        // Recherche libre sur le nom ou le slug.
+        if ( ! empty( $args['search'] ) ) {
+            $like     = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $where   .= " AND (name LIKE %s OR slug LIKE %s)";
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        return array( $table, $where, $params );
+    }
+
+    // Récupère une liste de packs filtrés (statut, catégorie, étiquette, recherche)
+    // avec pagination optionnelle. Retourne un tableau d'objets.
+    public function get_packs( $args = array() ) {
+        global $wpdb;
+        list( $table, $where, $params ) = $this->packs_where( $args );
+
+        $limit = '';
+        if ( ! empty( $args['limit'] ) ) {
+            $limit = "LIMIT " . absint( $args['limit'] );
+            if ( ! empty( $args['offset'] ) ) {
+                $limit .= " OFFSET " . absint( $args['offset'] );
+            }
+        }
+
         $order = 'ORDER BY sort_order ASC, id DESC';
 
         // Requête préparée uniquement lorsqu'il y a des paramètres dynamiques.
         if ( ! empty( $params ) ) {
-            return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} {$order}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} {$order} {$limit}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         }
 
-        return $wpdb->get_results( "SELECT * FROM {$table} {$where} {$order}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        return $wpdb->get_results( "SELECT * FROM {$table} {$where} {$order} {$limit}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Compte les packs selon les mêmes filtres que get_packs(). Retourne un entier.
+    public function count_packs( $args = array() ) {
+        global $wpdb;
+        list( $table, $where, $params ) = $this->packs_where( $args );
+
+        if ( ! empty( $params ) ) {
+            return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} {$where}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} {$where}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
     // Insère un pack et retourne l'ID inséré.
@@ -229,11 +306,25 @@ class Flora_DB {
         return $wpdb->update( $table, array( 'status' => 'trash' ), array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
-    // Récupère toutes les catégories triées. Retourne un tableau d'objets.
-    public function get_categories() {
+    // Récupère toutes les catégories triées, avec recherche optionnelle sur le nom ou le slug.
+    public function get_categories( $args = array() ) {
         global $wpdb;
-        $table = $this->table( 'categories' );
-        return $wpdb->get_results( "SELECT * FROM {$table} ORDER BY sort_order ASC, name ASC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        $table  = $this->table( 'categories' );
+        $where  = '';
+        $params = array();
+
+        if ( ! empty( $args['search'] ) ) {
+            $like     = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $where    = " WHERE (name LIKE %s OR slug LIKE %s)";
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        if ( ! empty( $params ) ) {
+            return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} ORDER BY sort_order ASC, name ASC", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return $wpdb->get_results( "SELECT * FROM {$table} {$where} ORDER BY sort_order ASC, name ASC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
     // Récupère une catégorie par son ID. Retourne un objet ligne ou null.
@@ -287,11 +378,25 @@ class Flora_DB {
         return $updated;
     }
 
-    // Récupère toutes les étiquettes triées par nom. Retourne un tableau d'objets.
-    public function get_tags() {
+    // Récupère toutes les étiquettes triées par nom, avec recherche optionnelle sur le nom ou le slug.
+    public function get_tags( $args = array() ) {
         global $wpdb;
-        $table = $this->table( 'tags' );
-        return $wpdb->get_results( "SELECT * FROM {$table} ORDER BY name ASC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        $table  = $this->table( 'tags' );
+        $where  = '';
+        $params = array();
+
+        if ( ! empty( $args['search'] ) ) {
+            $like     = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $where    = " WHERE (name LIKE %s OR slug LIKE %s)";
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        if ( ! empty( $params ) ) {
+            return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} ORDER BY name ASC", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return $wpdb->get_results( "SELECT * FROM {$table} {$where} ORDER BY name ASC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
     // Récupère une étiquette par son ID. Retourne un objet ligne ou null.
@@ -600,11 +705,32 @@ class Flora_DB {
         return $ok;
     }
 
-    // Récupère toutes les wilayas triées par code. Retourne un tableau d'objets.
-    public function get_wilayas() {
+    // Récupère les wilayas triées, avec recherche optionnelle (code, nom, nom arabe).
+    public function get_wilayas( $args = array() ) {
         global $wpdb;
-        $table = $this->table( 'wilayas' );
-        return $wpdb->get_results( "SELECT * FROM {$table} ORDER BY code ASC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        $table  = $this->table( 'wilayas' );
+        $where  = '';
+        $params = array();
+
+        if ( ! empty( $args['search'] ) ) {
+            $search  = trim( $args['search'] );
+            $like    = '%' . $wpdb->esc_like( $search ) . '%';
+
+            if ( ctype_digit( $search ) ) {
+                $where    = " WHERE code = %d";
+                $params[] = absint( $search );
+            } else {
+                $where    = " WHERE (name LIKE %s OR name_ar LIKE %s)";
+                $params[] = $like;
+                $params[] = $like;
+            }
+        }
+
+        if ( ! empty( $params ) ) {
+            return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} ORDER BY code ASC", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return $wpdb->get_results( "SELECT * FROM {$table} {$where} ORDER BY code ASC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
     // Récupère une wilaya par son code. Retourne un objet ligne ou null.
@@ -634,18 +760,71 @@ class Flora_DB {
         return $wpdb->delete( $table, array( 'code' => absint( $code ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
-    // Récupère les communes, optionnellement filtrées par wilaya. Retourne un tableau d'objets.
-    public function get_communes( $wilaya_code = 0 ) {
+    // Récupère les communes d'une wilaya (optionnelle), avec recherche libre (nom, nom arabe,
+// daïra, code postal) et pagination optionnelle. Retourne un tableau d'objets.
+    public function get_communes( $wilaya_code = 0, $args = array() ) {
         global $wpdb;
-        $table = $this->table( 'communes' );
+        $table  = $this->table( 'communes' );
+        $where  = "";
+        $params = array();
 
         if ( $wilaya_code > 0 ) {
-            $query = $wpdb->prepare( "SELECT * FROM {$table} WHERE wilaya_code = %d ORDER BY name ASC", absint( $wilaya_code ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $where    = " WHERE wilaya_code = %d";
+            $params[] = absint( $wilaya_code );
         } else {
-            $query = "SELECT * FROM {$table} ORDER BY name ASC"; // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $where = " WHERE 1=1";
         }
 
-        return $wpdb->get_results( $query );
+        if ( ! empty( $args['search'] ) ) {
+            $like     = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $where   .= " AND (name LIKE %s OR name_ar LIKE %s OR daira LIKE %s OR daira_ar LIKE %s OR post_code LIKE %s)";
+            for ( $i = 0; $i < 5; $i++ ) {
+                $params[] = $like;
+            }
+        }
+
+        $limit = '';
+        if ( ! empty( $args['limit'] ) ) {
+            $limit = "LIMIT " . absint( $args['limit'] );
+            if ( ! empty( $args['offset'] ) ) {
+                $limit .= " OFFSET " . absint( $args['offset'] );
+            }
+        }
+
+        if ( ! empty( $params ) ) {
+            return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} ORDER BY name ASC {$limit}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return $wpdb->get_results( "SELECT * FROM {$table} {$where} ORDER BY name ASC {$limit}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Compte les communes selon les mêmes filtres que get_communes(). Retourne un entier.
+    public function count_communes( $wilaya_code = 0, $args = array() ) {
+        global $wpdb;
+        $table  = $this->table( 'communes' );
+        $where  = "";
+        $params = array();
+
+        if ( $wilaya_code > 0 ) {
+            $where    = " WHERE wilaya_code = %d";
+            $params[] = absint( $wilaya_code );
+        } else {
+            $where = " WHERE 1=1";
+        }
+
+        if ( ! empty( $args['search'] ) ) {
+            $like     = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $where   .= " AND (name LIKE %s OR name_ar LIKE %s OR daira LIKE %s OR daira_ar LIKE %s OR post_code LIKE %s)";
+            for ( $i = 0; $i < 5; $i++ ) {
+                $params[] = $like;
+            }
+        }
+
+        if ( ! empty( $params ) ) {
+            return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} {$where}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} {$where}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
     // Insère une commune, ou la met à jour si son code postal existe déjà. Retourne l'ID de la commune.
@@ -728,16 +907,96 @@ class Flora_DB {
         return $wpdb->delete( $table, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
-    // Récupère les promotions, éventuellement uniquement les promotions actives à la date du jour. Retourne un tableau d'objets.
-    public function get_promotions( $active_only = false ) {
+    // Récupère les promotions avec filtres optionnels (active_only bool, status, trigger_type,
+// search) et rétrocompatibilité booléenne pour le front-end. Retourne un tableau d'objets.
+    public function get_promotions( $args = array() ) {
         global $wpdb;
-        $table = $this->table( 'promotions' );
-        $where = '';
-        if ( $active_only ) {
-            $today = current_time( 'Y-m-d' );
-            $where = $wpdb->prepare( " WHERE status = 'active' AND (start_date IS NULL OR start_date <= %s) AND (end_date IS NULL OR end_date = '0000-00-00' OR end_date >= %s)", $today, $today ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        if ( is_bool( $args ) ) {
+            $args = $args ? array( 'active_only' => true ) : array();
         }
+        $table  = $this->table( 'promotions' );
+        $where  = "WHERE 1=1";
+        $params = array();
+
+        // 'active_only' = filtre front-end : actives à la date du jour.
+        if ( ! empty( $args['active_only'] ) ) {
+            $today = current_time( 'Y-m-d' );
+            $where .= $wpdb->prepare( " AND status = 'active' AND (start_date IS NULL OR start_date <= %s) AND (end_date IS NULL OR end_date = '0000-00-00' OR end_date >= %s)", $today, $today ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        } elseif ( ! empty( $args['status'] ) && 'any' !== $args['status'] ) {
+            $where   .= " AND status = %s";
+            $params[] = $args['status'];
+        }
+
+        // Filtre par type de déclencheur (product / pack).
+        if ( ! empty( $args['trigger_type'] ) && in_array( $args['trigger_type'], array( 'product', 'pack' ), true ) ) {
+            $where   .= " AND trigger_type = %s";
+            $params[] = $args['trigger_type'];
+        }
+
+        // Recherche par nom du déclencheur ou de l'article offert.
+        if ( ! empty( $args['search'] ) ) {
+            $like           = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $table_products = $this->table( 'products' );
+            $table_packs    = $this->table( 'packs' );
+            $where         .= " AND (
+                (trigger_type <> 'pack' AND trigger_product_id IN (SELECT id FROM {$table_products} WHERE name LIKE %s OR slug LIKE %s))
+                OR (trigger_type = 'pack' AND trigger_product_id IN (SELECT id FROM {$table_packs} WHERE name LIKE %s OR slug LIKE %s))
+                OR free_product_id IN (SELECT id FROM {$table_products} WHERE name LIKE %s)
+            )";
+            for ( $i = 0; $i < 5; $i++ ) {
+                $params[] = $like;
+            }
+        }
+
+        if ( ! empty( $params ) ) {
+            return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} ORDER BY id DESC", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
         return $wpdb->get_results( "SELECT * FROM {$table} {$where} ORDER BY id DESC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Compte les promotions selon les mêmes filtres que get_promotions(). Retourne un entier.
+    public function count_promotions( $args = array() ) {
+        global $wpdb;
+        if ( is_bool( $args ) ) {
+            $args = $args ? array( 'active_only' => true ) : array();
+        }
+        $table  = $this->table( 'promotions' );
+        $where  = "WHERE 1=1";
+        $params = array();
+
+        if ( ! empty( $args['active_only'] ) ) {
+            $today = current_time( 'Y-m-d' );
+            $where .= $wpdb->prepare( " AND status = 'active' AND (start_date IS NULL OR start_date <= %s) AND (end_date IS NULL OR end_date = '0000-00-00' OR end_date >= %s)", $today, $today ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        } elseif ( ! empty( $args['status'] ) && 'any' !== $args['status'] ) {
+            $where   .= " AND status = %s";
+            $params[] = $args['status'];
+        }
+
+        if ( ! empty( $args['trigger_type'] ) && in_array( $args['trigger_type'], array( 'product', 'pack' ), true ) ) {
+            $where   .= " AND trigger_type = %s";
+            $params[] = $args['trigger_type'];
+        }
+
+        if ( ! empty( $args['search'] ) ) {
+            $like           = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $table_products = $this->table( 'products' );
+            $table_packs    = $this->table( 'packs' );
+            $where         .= " AND (
+                (trigger_type <> 'pack' AND trigger_product_id IN (SELECT id FROM {$table_products} WHERE name LIKE %s OR slug LIKE %s))
+                OR (trigger_type = 'pack' AND trigger_product_id IN (SELECT id FROM {$table_packs} WHERE name LIKE %s OR slug LIKE %s))
+                OR free_product_id IN (SELECT id FROM {$table_products} WHERE name LIKE %s)
+            )";
+            for ( $i = 0; $i < 5; $i++ ) {
+                $params[] = $like;
+            }
+        }
+
+        if ( ! empty( $params ) ) {
+            return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} {$where}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} {$where}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
     // Récupère une promotion par son ID. Retourne un objet ligne ou null.
@@ -782,17 +1041,98 @@ class Flora_DB {
         return $wpdb->delete( $table, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
-    // Récupère les remises catalogue (catégorie / type / tag), éventuellement uniquement
-    // les remises actives à la date du jour. Retourne un tableau d'objets.
-    public function get_catalog_discounts( $active_only = false ) {
+    // Récupère les remises catalogue avec filtres optionnels (active_only bool, status, scope,
+// search) et rétrocompatibilité booléenne pour le front-end. Retourne un tableau d'objets.
+    public function get_catalog_discounts( $args = array() ) {
         global $wpdb;
-        $table = $this->table( 'catalog_discounts' );
-        $where = '';
-        if ( $active_only ) {
-            $today = current_time( 'Y-m-d' );
-            $where = $wpdb->prepare( " WHERE status = 'active' AND (start_date IS NULL OR start_date <= %s) AND (end_date IS NULL OR end_date = '0000-00-00' OR end_date >= %s)", $today, $today ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        if ( is_bool( $args ) ) {
+            $args = $args ? array( 'active_only' => true ) : array();
         }
+        $table  = $this->table( 'catalog_discounts' );
+        $where  = "WHERE 1=1";
+        $params = array();
+
+        if ( ! empty( $args['active_only'] ) ) {
+            $today = current_time( 'Y-m-d' );
+            $where .= $wpdb->prepare( " AND status = 'active' AND (start_date IS NULL OR start_date <= %s) AND (end_date IS NULL OR end_date = '0000-00-00' OR end_date >= %s)", $today, $today ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        } elseif ( ! empty( $args['status'] ) && 'any' !== $args['status'] ) {
+            $where   .= " AND status = %s";
+            $params[] = $args['status'];
+        }
+
+        // Filtre par portée (category / type / tag).
+        if ( ! empty( $args['scope'] ) && in_array( $args['scope'], array( 'category', 'type', 'tag' ), true ) ) {
+            $where   .= " AND scope = %s";
+            $params[] = $args['scope'];
+        }
+
+        // Recherche par nom de catégorie, d'étiquette ou d'article offert.
+        if ( ! empty( $args['search'] ) ) {
+            $like           = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $table_categories = $this->table( 'categories' );
+            $table_tags       = $this->table( 'tags' );
+            $table_products   = $this->table( 'products' );
+            $table_packs      = $this->table( 'packs' );
+            $where           .= " AND (
+                (scope = 'category' AND target_id IN (SELECT id FROM {$table_categories} WHERE name LIKE %s))
+                OR (scope = 'tag' AND target_id IN (SELECT id FROM {$table_tags} WHERE name LIKE %s))
+                OR free_product_id IN (SELECT id FROM {$table_products} WHERE name LIKE %s OR slug LIKE %s)
+            )";
+            for ( $i = 0; $i < 4; $i++ ) {
+                $params[] = $like;
+            }
+        }
+
+        if ( ! empty( $params ) ) {
+            return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} ORDER BY id DESC", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
         return $wpdb->get_results( "SELECT * FROM {$table} {$where} ORDER BY id DESC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    }
+
+    // Compte les remises catalogue selon les mêmes filtres que get_catalog_discounts(). Retourne un entier.
+    public function count_catalog_discounts( $args = array() ) {
+        global $wpdb;
+        if ( is_bool( $args ) ) {
+            $args = $args ? array( 'active_only' => true ) : array();
+        }
+        $table  = $this->table( 'catalog_discounts' );
+        $where  = "WHERE 1=1";
+        $params = array();
+
+        if ( ! empty( $args['active_only'] ) ) {
+            $today = current_time( 'Y-m-d' );
+            $where .= $wpdb->prepare( " AND status = 'active' AND (start_date IS NULL OR start_date <= %s) AND (end_date IS NULL OR end_date = '0000-00-00' OR end_date >= %s)", $today, $today ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        } elseif ( ! empty( $args['status'] ) && 'any' !== $args['status'] ) {
+            $where   .= " AND status = %s";
+            $params[] = $args['status'];
+        }
+
+        if ( ! empty( $args['scope'] ) && in_array( $args['scope'], array( 'category', 'type', 'tag' ), true ) ) {
+            $where   .= " AND scope = %s";
+            $params[] = $args['scope'];
+        }
+
+        if ( ! empty( $args['search'] ) ) {
+            $like             = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $table_categories = $this->table( 'categories' );
+            $table_tags       = $this->table( 'tags' );
+            $table_products   = $this->table( 'products' );
+            $where           .= " AND (
+                (scope = 'category' AND target_id IN (SELECT id FROM {$table_categories} WHERE name LIKE %s))
+                OR (scope = 'tag' AND target_id IN (SELECT id FROM {$table_tags} WHERE name LIKE %s))
+                OR free_product_id IN (SELECT id FROM {$table_products} WHERE name LIKE %s OR slug LIKE %s)
+            )";
+            for ( $i = 0; $i < 4; $i++ ) {
+                $params[] = $like;
+            }
+        }
+
+        if ( ! empty( $params ) ) {
+            return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} {$where}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} {$where}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
     // Récupère une remise catalogue par son ID. Retourne un objet ligne ou null.
@@ -855,7 +1195,8 @@ class Flora_DB {
         return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE order_number = %s", $order_number ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
-    // Récupère une liste de commandes filtrées par statut, avec pagination optionnelle. Retourne un tableau d'objets.
+    // Récupère une liste de commandes filtrées (statut, recherche, période), avec pagination
+    // optionnelle. Retourne un tableau d'objets.
     public function get_orders( $args = array() ) {
         global $wpdb;
         $table  = $this->table( 'orders' );
@@ -867,9 +1208,27 @@ class Flora_DB {
             $params[] = $args['status'];
         }
 
-        $order = 'ORDER BY id DESC';
-        $limit = '';
+        // Recherche sur n° commande, client, email ou téléphone.
+        if ( ! empty( $args['search'] ) ) {
+            $like     = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $where   .= " AND (order_number LIKE %s OR customer_name LIKE %s OR email LIKE %s OR phone LIKE %s)";
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
 
+        // Filtre de période (date_from / date_to incluses).
+        if ( ! empty( $args['date_from'] ) ) {
+            $where   .= " AND created_at >= %s";
+            $params[] = $args['date_from'] . ' 00:00:00';
+        }
+        if ( ! empty( $args['date_to'] ) ) {
+            $where   .= " AND created_at <= %s";
+            $params[] = $args['date_to'] . ' 23:59:59';
+        }
+
+        $limit = '';
         if ( ! empty( $args['limit'] ) ) {
             $limit = "LIMIT " . absint( $args['limit'] );
             if ( ! empty( $args['offset'] ) ) {
@@ -877,22 +1236,54 @@ class Flora_DB {
             }
         }
 
-        // Requête préparée uniquement lorsqu'il y a des paramètres dynamiques.
         if ( ! empty( $params ) ) {
-            return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} {$order} {$limit}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} ORDER BY id DESC {$limit}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         }
 
-        return $wpdb->get_results( "SELECT * FROM {$table} {$where} {$order} {$limit}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        return $wpdb->get_results( "SELECT * FROM {$table} {$where} ORDER BY id DESC {$limit}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
-    // Compte les commandes, optionnellement filtrées par statut. Retourne un entier.
-    public function count_orders( $status = '' ) {
+    // Compte les commandes selon les mêmes filtres que get_orders(). Retourne un entier.
+    // $args peut être une chaîne (ancien statut) ou un tableau avec status/search/date_from/date_to.
+    public function count_orders( $args = '' ) {
         global $wpdb;
-        $table = $this->table( 'orders' );
-        if ( $status ) {
-            return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE status = %s", $status ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        $table  = $this->table( 'orders' );
+        $where  = "WHERE 1=1";
+        $params = array();
+
+        // Rétrocompatibilité : count_orders('pending').
+        if ( is_string( $args ) ) {
+            $args = $args ? array( 'status' => $args ) : array();
         }
-        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+        if ( ! empty( $args['status'] ) ) {
+            $where   .= " AND status = %s";
+            $params[] = $args['status'];
+        }
+
+        if ( ! empty( $args['search'] ) ) {
+            $like     = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $where   .= " AND (order_number LIKE %s OR customer_name LIKE %s OR email LIKE %s OR phone LIKE %s)";
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        if ( ! empty( $args['date_from'] ) ) {
+            $where   .= " AND created_at >= %s";
+            $params[] = $args['date_from'] . ' 00:00:00';
+        }
+        if ( ! empty( $args['date_to'] ) ) {
+            $where   .= " AND created_at <= %s";
+            $params[] = $args['date_to'] . ' 23:59:59';
+        }
+
+        if ( ! empty( $params ) ) {
+            return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} {$where}", $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+
+        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} {$where}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
     }
 
     // Calcule le revenu des commandes valides, borné par une période optionnelle. Retourne un flottant.

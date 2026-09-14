@@ -104,11 +104,54 @@ class Flora_Admin_Packs {
     }
 
     private static function render_list() {
-        // Affiche la liste des packs (tous statuts confondus) via la vue dédiée.
-        $db   = Flora_DB::get_instance();
-        $packs = $db->get_packs( array( 'status' => '' ) );
+        $db = Flora_DB::get_instance();
+
+        $args           = self::get_list_args();
+        $total          = $db->count_packs( $args );
+        $args['limit']  = Flora_Admin_List::per_page();
+        $args['offset'] = Flora_Admin_List::offset();
+        $packs          = $db->get_packs( $args );
+        $all_categories = $db->get_categories();
 
         include FLORA_SHOP_PATH . 'admin/views/packs-list.php';
+    }
+
+    // Export Excel des packs filtrés (sans pagination).
+    public static function export() {
+        $db   = Flora_DB::get_instance();
+        $args = self::get_list_args();
+        $all  = $db->get_packs( $args );
+        $rows = array();
+        foreach ( $all as $pk ) {
+            $cat_name = '';
+            if ( ! empty( $pk->category_id ) ) {
+                $cat = $db->get_category( $pk->category_id );
+                $cat_name = $cat ? $cat->name : '';
+            }
+            $pp = $db->get_pack_products( $pk->id );
+            $rows[] = array(
+                (int) $pk->id,
+                $pk->name,
+                $pk->slug,
+                (float) $pk->pack_price,
+                count( $pp ),
+                $cat_name,
+                ucfirst( $pk->status ),
+            );
+        }
+        Flora_Exporter::handle_export( 'flora-packs.xlsx', array( 'ID', 'Nom', 'Slug', 'Prix', 'Produits', 'Catégorie', 'Statut' ), $rows );
+    }
+
+    private static function get_list_args() {
+        $search   = isset( $_GET['flora_s'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $status   = isset( $_GET['flora_status'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_status'] ) ) : 'any'; // phpcs:ignore WordPress.Security.NonceVerification
+        $category = isset( $_GET['flora_category'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_category'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+
+        return array(
+            'status'   => $status,
+            'search'   => $search,
+            'category' => $category,
+        );
     }
 
     private static function render_form( $action ) {

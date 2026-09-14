@@ -91,12 +91,71 @@ class Flora_Admin_Products {
         }
     }
 
-    private static function render_list() {
-        // Affiche la liste des produits (tous statuts confondus) via la vue dédiée.
-        $db      = Flora_DB::get_instance();
-        $products = $db->get_products( array( 'status' => '' ) );
+private static function render_list() {
+        $db = Flora_DB::get_instance();
+
+        $args           = self::get_list_args();
+        $total          = $db->count_products( $args );
+        $args['limit']  = Flora_Admin_List::per_page();
+        $args['offset'] = Flora_Admin_List::offset();
+        $products       = $db->get_products( $args );
+        $all_categories = $db->get_categories();
 
         include FLORA_SHOP_PATH . 'admin/views/products-list.php';
+    }
+
+    // Export Excel : reconstruit les lignes de la liste filtrée (sans pagination)
+    // puis télécharge le classeur. Intercepté par Flora_Admin::handle_export().
+    public static function export() {
+        $db   = Flora_DB::get_instance();
+        $args = self::get_list_args();
+        $all  = $db->get_products( $args );
+
+        $tag_map = array();
+        foreach ( $db->get_tags() as $tag ) {
+            $tag_map[ $tag->id ] = $tag->name;
+        }
+
+        $rows = array();
+        foreach ( $all as $p ) {
+            $cat_name = '';
+            if ( ! empty( $p->category_id ) ) {
+                $cat = $db->get_category( $p->category_id );
+                $cat_name = $cat ? $cat->name : '';
+            }
+            $tag_names = array();
+            foreach ( $db->get_item_tags( 'product', $p->id ) as $tag_id ) {
+                if ( isset( $tag_map[ $tag_id ] ) ) {
+                    $tag_names[] = $tag_map[ $tag_id ];
+                }
+            }
+            $rows[] = array(
+                (int) $p->id,
+                $p->name,
+                $p->slug,
+                (float) $p->price,
+                'outofstock' === $p->stock_status ? 0 : (int) $p->stock_qty,
+                $cat_name,
+                implode( ', ', $tag_names ),
+                ucfirst( $p->status ),
+            );
+        }
+        Flora_Exporter::handle_export( 'flora-produits.xlsx', array( 'ID', 'Nom', 'Slug', 'Prix', 'Stock', 'Catégorie', 'Étiquettes', 'Statut' ), $rows );
+    }
+
+    // Récupère les filtres GET (recherche, statut, stock, catégorie) pour la liste produits.
+    private static function get_list_args() {
+        $search   = isset( $_GET['flora_s'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $status   = isset( $_GET['flora_status'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_status'] ) ) : 'any'; // phpcs:ignore WordPress.Security.NonceVerification
+        $stock    = isset( $_GET['flora_stock'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_stock'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $category = isset( $_GET['flora_category'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_category'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+
+        return array(
+            'status'       => $status,
+            'search'       => $search,
+            'stock_status' => $stock,
+            'category'     => $category,
+        );
     }
 
     private static function render_form( $action ) {

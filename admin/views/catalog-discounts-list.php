@@ -10,6 +10,31 @@
         <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-promotions&tab=catalog' ) ); ?>" class="nav-tab nav-tab-active"><?php esc_html_e( 'Remises catégorie / type / tag', 'flora-shop' ); ?></a>
     </nav>
 
+    <?php
+    Flora_Admin_List::bar( array(
+        'page'   => 'flora-promotions',
+        'tab'    => 'catalog',
+        'search' => $args['search'],
+        'filters' => array(
+            array(
+                'name'    => 'flora_status',
+                'label'   => __( 'Statut', 'flora-shop' ),
+                'options' => array( 'active' => __( 'Active', 'flora-shop' ), 'inactive' => __( 'Inactive', 'flora-shop' ) ),
+                'current' => 'any' === $args['status'] ? '' : $args['status'],
+            ),
+            array(
+                'name'    => 'flora_scope',
+                'label'   => __( 'Portée', 'flora-shop' ),
+                'options' => array( 'category' => __( 'Catégorie', 'flora-shop' ), 'type' => __( 'Type article', 'flora-shop' ), 'tag' => __( 'Étiquette', 'flora-shop' ) ),
+                'current' => isset( $args['scope'] ) ? $args['scope'] : '',
+            ),
+        ),
+        'export_args' => array_merge( array( 'page' => 'flora-promotions', 'tab' => 'catalog' ), array_diff_key( $args, array( 'limit' => '', 'offset' => '' ) ) ),
+    ) );
+    ?>
+
+    <p class="flora-result-count"><?php printf( esc_html( _n( '%d élément trouvé.', '%d éléments trouvés.', $total, 'flora-shop' ) ), $total ); ?></p>
+
     <table class="wp-list-table widefat fixed striped">
         <thead>
             <tr>

@@ -11,6 +11,38 @@
         <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-orders&status=completed' ) ); ?>" class="nav-tab <?php echo 'completed' === $status_filter ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Terminées', 'flora-shop' ); ?></a>
     </h2>
 
+    <?php
+    $orders_base    = empty( $status_filter ) ? array() : array( 'status' => $status_filter );
+    $orders_export  = array_merge( array( 'page' => 'flora-orders' ), $orders_base );
+    $orders_export['flora_s']     = $args['search'];
+    $orders_export['date_from']   = $args['date_from'];
+    $orders_export['date_to']     = $args['date_to'];
+
+    Flora_Admin_List::bar( array(
+        'page'        => 'flora-orders',
+        'search'      => $args['search'],
+        'filters'     => array(
+            array(
+                'name'    => 'date_from',
+                'label'   => __( 'Du', 'flora-shop' ),
+                'type'    => 'date',
+                'options' => array(),
+                'current' => $args['date_from'],
+            ),
+            array(
+                'name'    => 'date_to',
+                'label'   => __( 'Au', 'flora-shop' ),
+                'type'    => 'date',
+                'options' => array(),
+                'current' => $args['date_to'],
+            ),
+        ),
+        'export_args' => $orders_export,
+    ) );
+    ?>
+
+    <p class="flora-result-count"><?php printf( esc_html( _n( '%d commande trouvée.', '%d commandes trouvées.', $total, 'flora-shop' ) ), $total ); ?></p>
+
     <table class="wp-list-table widefat fixed striped">
         <thead>
             <tr>
@@ -50,4 +82,14 @@
             <?php endif; ?>
         </tbody>
     </table>
+
+    <?php
+    $orders_pagination = array_merge( array( 'page' => 'flora-orders' ), $orders_base );
+    if ( '' !== $args['search'] ) { $orders_pagination['flora_s'] = $args['search']; }
+    if ( '' !== $args['date_from'] ) { $orders_pagination['date_from'] = $args['date_from']; }
+    if ( '' !== $args['date_to'] ) { $orders_pagination['date_to'] = $args['date_to']; }
+    ?>
+    <?php if ( $pagination = Flora_Admin_List::paginate( $total, $orders_pagination ) ) : ?>
+    <div class="tablenav bottom"><div class="tablenav-pages"><?php echo $pagination; ?></div></div>
+    <?php endif; ?>
 </div>

@@ -1,11 +1,17 @@
-<?php /* Vue de la liste des catégories : tableau des catégories partagées produits / packs. */ ?>
+<?php /* Vue de la liste des catégories : barre de filtres/ export, tableau des catégories partagées produits / packs. */ ?>
 
 <div class="wrap flora-admin">
     <h1 class="wp-heading-inline"><?php esc_html_e( 'Catégories', 'flora-shop' ); ?></h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-categories&action=add' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Ajouter une catégorie', 'flora-shop' ); ?></a>
     <hr class="wp-header-end">
 
-    <p class="description"><?php esc_html_e( 'Une catégorie est associée à un produit ou un pack. Les shortcodes de la boutique filtrent les articles par catégorie.', 'flora-shop' ); ?></p>
+    <?php
+    Flora_Admin_List::bar( array(
+        'page'        => 'flora-categories',
+        'search'      => $search,
+        'export_args' => array( 'page' => 'flora-categories', 'flora_s' => $search ),
+    ) );
+    ?>
 
     <table class="wp-list-table widefat fixed striped">
         <thead>
@@ -27,7 +33,6 @@
                         <td><?php echo esc_html( $cat->name ); ?></td>
                         <td><code><?php echo esc_html( $cat->slug ); ?></code></td>
                         <td><?php echo esc_html( $cat->sort_order ); ?></td>
-                        <?php /* --- Colonne actions : lien modifier + formulaire de suppression --- */ ?>
                         <td>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-categories&action=edit&id=' . $cat->id ) ); ?>"><?php esc_html_e( 'Modifier', 'flora-shop' ); ?></a> |
                             <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Supprimer cette catégorie ?', 'flora-shop' ); ?>');">

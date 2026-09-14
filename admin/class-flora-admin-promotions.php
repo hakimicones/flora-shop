@@ -107,13 +107,89 @@ class Flora_Admin_Promotions {
     }
 
     private static function render_list() {
-        // Affiche la liste des promotions ; charge produits et packs pour le libellé des cibles.
-        $db          = Flora_DB::get_instance();
-        $promotions  = $db->get_promotions();
-        $all_products = $db->get_products();
-        $all_packs    = $db->get_packs( array( 'status' => '' ) );
+        $db = Flora_DB::get_instance();
+
+        $args          = self::get_list_args();
+        $total         = $db->count_promotions( $args );
+        $promotions    = $db->get_promotions( $args );
+        $all_products  = $db->get_products();
+        $all_packs     = $db->get_packs( array( 'status' => '' ) );
 
         include FLORA_SHOP_PATH . 'admin/views/promotions-list.php';
+    }
+
+    // Export Excel des promotions filtrées (sans pagination).
+    public static function export() {
+        $db   = Flora_DB::get_instance();
+        $args = self::get_list_args();
+        $all  = $db->get_promotions( $args );
+        $product_map = self::build_map( $db->get_products() );
+        $pack_map    = self::build_map( $db->get_packs( array( 'status' => '' ) ) );
+        $rows = array();
+        foreach ( $all as $pr ) {
+            $trigger_label = self::resolve_trigger( $pr, $product_map, $pack_map );
+            $reward_label  = self::resolve_reward( $pr, $product_map, $pack_map );
+            $rows[] = array(
+                (int) $pr->id,
+                $pr->trigger_type ? $pr->trigger_type : 'product',
+                $trigger_label,
+                (int) $pr->trigger_qty,
+                $reward_label,
+                $pr->limit_per_order > 0 ? (int) $pr->limit_per_order : '',
+                ucfirst( $pr->status ),
+            );
+        }
+        Flora_Exporter::handle_export( 'flora-promotions.xlsx', array( 'ID', 'Type', 'Déclencheur', 'Qté min', 'Récompense', 'Limite', 'Statut' ), $rows );
+    }
+
+    private static function get_list_args() {
+        $search       = isset( $_GET['flora_s'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $status       = isset( $_GET['flora_status'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_status'] ) ) : 'any'; // phpcs:ignore WordPress.Security.NonceVerification
+        $trigger_type = isset( $_GET['flora_trigger_type'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_trigger_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+
+        $args = array( 'search' => $search, 'status' => $status );
+        if ( $trigger_type && in_array( $trigger_type, array( 'product', 'pack' ), true ) ) {
+            $args['trigger_type'] = $trigger_type;
+        }
+        return $args;
+    }
+
+    private static function build_map( $items ) {
+        $map = array();
+        foreach ( $items as $item ) {
+            $map[ $item->id ] = $item;
+        }
+        return $map;
+    }
+
+    private static function resolve_trigger( $pr, $product_map, $pack_map ) {
+        if ( 'pack' === $pr->trigger_type && isset( $pack_map[ $pr->trigger_product_id ] ) ) {
+            return '[Pack] ' . $pack_map[ $pr->trigger_product_id ]->name;
+        }
+        if ( isset( $product_map[ $pr->trigger_product_id ] ) ) {
+            return $product_map[ $pr->trigger_product_id ]->name;
+        }
+        return esc_html__( 'Inconnu', 'flora-shop' );
+    }
+
+    private static function resolve_reward( $pr, $product_map, $pack_map ) {
+        $reward_type = $pr->reward_type ? $pr->reward_type : 'free';
+        $free_type   = isset( $pr->free_type ) && $pr->free_type ? $pr->free_type : 'product';
+        if ( 'percent' === $reward_type ) {
+            return $pr->discount_percent . '%';
+        }
+        if ( 'amount' === $reward_type ) {
+            return Flora_Helpers::format_price( $pr->discount_amount );
+        }
+        if ( 'pack' === $free_type && isset( $pack_map[ $pr->free_product_id ] ) ) {
+            $label = 'Pack : ' . $pack_map[ $pr->free_product_id ]->name;
+            return $pr->free_qty > 1 ? $label . ' × ' . $pr->free_qty : $label;
+        }
+        if ( isset( $product_map[ $pr->free_product_id ] ) ) {
+            $label = 'Produit : ' . $product_map[ $pr->free_product_id ]->name;
+            return $pr->free_qty > 1 ? $label . ' × ' . $pr->free_qty : $label;
+        }
+        return esc_html__( 'Inconnu', 'flora-shop' );
     }
 
     private static function render_form( $action ) {

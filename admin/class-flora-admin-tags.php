@@ -77,11 +77,24 @@ class Flora_Admin_Tags {
     }
 
     private static function render_list() {
-        // Affiche la liste des étiquettes via la vue dédiée.
-        $db   = Flora_DB::get_instance();
-        $tags = $db->get_tags();
+        $db = Flora_DB::get_instance();
+
+        $search = isset( $_GET['flora_s'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $tags   = $db->get_tags( array( 'search' => $search ) );
 
         include FLORA_SHOP_PATH . 'admin/views/tags-list.php';
+    }
+
+    // Export Excel des étiquettes (recherche filtrée).
+    public static function export() {
+        $db    = Flora_DB::get_instance();
+        $search = isset( $_GET['flora_s'] ) ? sanitize_text_field( wp_unslash( $_GET['flora_s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+        $all   = $db->get_tags( array( 'search' => $search ) );
+        $rows  = array();
+        foreach ( $all as $t ) {
+            $rows[] = array( (int) $t->id, $t->name, $t->slug );
+        }
+        Flora_Exporter::handle_export( 'flora-etiquettes.xlsx', array( 'ID', 'Nom', 'Slug' ), $rows );
     }
 
     private static function render_form( $action ) {

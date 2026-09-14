@@ -1,9 +1,43 @@
-<?php /* Vue de la liste des produits : tableau avec image, prix, stock, statut et actions (modifier / supprimer). */ ?>
+<?php /* Vue de la liste des produits : barre de filtres, tableau avec image, prix, stock, statut, pagination et export. */ ?>
 
 <div class="wrap flora-admin">
     <h1 class="wp-heading-inline"><?php esc_html_e( 'Produits', 'flora-shop' ); ?></h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-products&action=add' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Ajouter un produit', 'flora-shop' ); ?></a>
     <hr class="wp-header-end">
+
+    <?php
+    $category_options = array();
+    foreach ( $all_categories as $cat ) {
+        $category_options[ $cat->slug ] = $cat->name;
+    }
+    Flora_Admin_List::bar( array(
+        'page'        => 'flora-products',
+        'search'      => $args['search'],
+        'filters'     => array(
+            array(
+                'name'    => 'flora_status',
+                'label'   => __( 'Statut', 'flora-shop' ),
+                'options' => array( 'publish' => __( 'Publié', 'flora-shop' ), 'draft' => __( 'Brouillon', 'flora-shop' ), 'trash' => __( 'Corbeille', 'flora-shop' ) ),
+                'current' => 'any' === $args['status'] ? '' : $args['status'],
+            ),
+            array(
+                'name'    => 'flora_stock',
+                'label'   => __( 'Stock', 'flora-shop' ),
+                'options' => array( 'instock' => __( 'En stock', 'flora-shop' ), 'outofstock' => __( 'Rupture', 'flora-shop' ) ),
+                'current' => $args['stock_status'],
+            ),
+            array(
+                'name'    => 'flora_category',
+                'label'   => __( 'Catégorie', 'flora-shop' ),
+                'options' => $category_options,
+                'current' => $args['category'],
+            ),
+        ),
+        'export_args' => array_merge( array( 'page' => 'flora-products' ), array_diff_key( $args, array( 'limit' => '', 'offset' => '' ) ) ),
+    ) );
+    ?>
+
+    <p class="flora-result-count"><?php printf( esc_html( _n( '%d élément trouvé.', '%d éléments trouvés.', $total, 'flora-shop' ) ), $total ); ?></p>
 
     <table class="wp-list-table widefat fixed striped">
         <thead>
@@ -18,7 +52,6 @@
             </tr>
         </thead>
         <tbody>
-            <?php /* --- Lignes du tableau : un produit par ligne --- */ ?>
             <?php if ( empty( $products ) ) : ?>
                 <tr><td colspan="7"><?php esc_html_e( 'Aucun produit trouvé.', 'flora-shop' ); ?></td></tr>
             <?php else : ?>
@@ -46,7 +79,6 @@
                                 <?php echo esc_html( ucfirst( $p->status ) ); ?>
                             </span>
                         </td>
-                        <?php /* --- Colonne actions : lien modifier + formulaire de suppression --- */ ?>
                         <td>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=flora-products&action=edit&id=' . $p->id ) ); ?>"><?php esc_html_e( 'Modifier', 'flora-shop' ); ?></a> |
                             <form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Supprimer ce produit ?', 'flora-shop' ); ?>');">
@@ -61,4 +93,15 @@
             <?php endif; ?>
         </tbody>
     </table>
+
+    <?php
+    $pagination_base = array( 'page' => 'flora-products' );
+    if ( '' !== $args['search'] ) { $pagination_base['flora_s'] = $args['search']; }
+    if ( 'any' !== $args['status'] ) { $pagination_base['flora_status'] = $args['status']; }
+    if ( '' !== $args['stock_status'] ) { $pagination_base['flora_stock'] = $args['stock_status']; }
+    if ( '' !== $args['category'] ) { $pagination_base['flora_category'] = $args['category']; }
+    ?>
+    <?php if ( $pagination = Flora_Admin_List::paginate( $total, $pagination_base ) ) : ?>
+    <div class="tablenav bottom"><div class="tablenav-pages"><?php echo $pagination; ?></div></div>
+    <?php endif; ?>
 </div>

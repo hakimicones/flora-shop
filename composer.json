@@ -1,0 +1,15 @@
+{
+    "name": "hakimicones/flora-shop",
+    "description": "Solution e-commerce complète avec gestion de produits, packs, promotions BXGY, transport dynamique (Wilaya/Commune) et deux méthodes de livraison.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.1",
+        "phpoffice/phpspreadsheet": "^3.0"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "preferred-install": "dist"
+    }
+}

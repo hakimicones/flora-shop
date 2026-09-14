@@ -95,7 +95,10 @@
             </form>
         </div>
 
-        <?php /* --- Tableau des wilayas enregistrées --- */ ?>
+        <?php /* --- Tableau des wilayas enregistrées, avec export Excel --- */ ?>
+        <p style="margin:14px 0 8px;">
+            <a class="button button-primary flora-export-btn" href="<?php echo esc_url( Flora_Exporter::export_url( array( 'page' => 'flora-shipping', 'tab' => 'wilayas' ) ) ); ?>"><?php esc_html_e( 'Exporter Excel', 'flora-shop' ); ?></a>
+        </p>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -167,6 +170,35 @@
             </form>
         </div>
 
+        <?php /* --- Filtres communes (recherche + wilaya) et export Excel --- */ ?>
+        <?php
+        $wilaya_options = array();
+        foreach ( $wilayas as $w ) {
+            $wilaya_options[ $w->code ] = $w->code . ' - ' . $w->name;
+        }
+        Flora_Admin_List::bar( array(
+            'page'   => 'flora-shipping',
+            'tab'    => 'communes',
+            'search' => $commune_search,
+            'filters' => array(
+                array(
+                    'name'    => 'flora_wilaya',
+                    'label'   => __( 'Wilaya', 'flora-shop' ),
+                    'options' => $wilaya_options,
+                    'current' => '' !== $commune_wilaya ? (string) $commune_wilaya : '',
+                ),
+            ),
+            'export_args' => array(
+                'page'        => 'flora-shipping',
+                'tab'         => 'communes',
+                'flora_s'     => $commune_search,
+                'flora_wilaya' => '' !== $commune_wilaya ? (string) $commune_wilaya : '',
+            ),
+        ) );
+        ?>
+
+        <p class="flora-result-count"><?php printf( esc_html( _n( '%d commune trouvée.', '%d communes trouvées.', $total_communes, 'flora-shop' ) ), $total_communes ); ?></p>
+
         <?php /* --- Tableau des communes enregistrées --- */ ?>
         <table class="wp-list-table widefat fixed striped">
             <thead>
@@ -180,7 +212,6 @@
             </thead>
             <tbody>
                 <?php
-                $all_communes = $db->get_communes();
                 if ( empty( $all_communes ) ) :
                 ?>
                     <tr><td colspan="5"><?php esc_html_e( 'Aucune commune configurée.', 'flora-shop' ); ?></td></tr>
@@ -206,6 +237,15 @@
                 <?php endif; ?>
             </tbody>
         </table>
+
+        <?php
+        $communes_pagination = array( 'page' => 'flora-shipping', 'tab' => 'communes' );
+        if ( '' !== $commune_search ) { $communes_pagination['flora_s'] = $commune_search; }
+        if ( '' !== $commune_wilaya ) { $communes_pagination['flora_wilaya'] = $commune_wilaya; }
+        ?>
+        <?php if ( $pagination = Flora_Admin_List::paginate( $total_communes, $communes_pagination ) ) : ?>
+        <div class="tablenav bottom"><div class="tablenav-pages"><?php echo $pagination; ?></div></div>
+        <?php endif; ?>
 
     <?php /* ================= Onglet Tarifs ================= */ ?>
     <?php elseif ( 'rates' === $tab ) : ?>
@@ -251,6 +291,9 @@
         </div>
 
         <?php /* --- Tableau des tarifs enregistrés (wilaya/commune avec rubriques domicile et bureau) --- */ ?>
+        <p style="margin:14px 0 8px;">
+            <a class="button button-primary flora-export-btn" href="<?php echo esc_url( Flora_Exporter::export_url( array( 'page' => 'flora-shipping', 'tab' => 'rates' ) ) ); ?>"><?php esc_html_e( 'Exporter Excel', 'flora-shop' ); ?></a>
+        </p>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>

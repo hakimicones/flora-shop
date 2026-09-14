@@ -150,10 +150,10 @@ jQuery(document).ready(function($) {
 function renderCartPromotions(cart) {
         var promotions = cart && cart.promotions ? cart.promotions : [];
         if (!promotions.length) return '';
-        var html = '<div class="flora-cart-promotions"><h4> Promotions appliquées</h4><table>';
+        var html = '<div class="flora-cart-promotions"><h4>' + i18n.applied_promotions + '</h4><table>';
         for (var i = 0; i < promotions.length; i++) {
             var p = promotions[i];
-            var amountStr = p.free ? 'Article offert ajouté' : '- ' + formatPrice(p.amount);
+            var amountStr = p.free ? i18n.added_free : '- ' + formatPrice(p.amount);
             html += '<tr><td>' + escapeHtml(p.title) + '</td><td class="flora-promo-amount">' + amountStr + '</td></tr>';
         }
         html += '</table></div>';
@@ -163,10 +163,10 @@ function renderCartPromotions(cart) {
     function renderCheckoutPromotions(cart) {
         var promotions = cart && cart.promotions ? cart.promotions : [];
         if (!promotions.length) return '';
-        var html = '<div class="flora-cart-promotions"><h4>Promotions appliquées</h4><table>';
+        var html = '<div class="flora-cart-promotions"><h4>' + i18n.applied_promotions + '</h4><table>';
         for (var i = 0; i < promotions.length; i++) {
             var p = promotions[i];
-            var amountStr = p.free ? 'Article offert ajouté' : '- ' + formatPrice(p.amount);
+            var amountStr = p.free ? i18n.added_free : '- ' + formatPrice(p.amount);
             html += '<tr><td>' + escapeHtml(p.title) + '</td><td class="flora-promo-amount">' + amountStr + '</td></tr>';
         }
         html += '</table></div>';
@@ -187,14 +187,14 @@ function renderCartPromotions(cart) {
             $container.html(
                 '<div class="flora-cart-empty">' +
                 '<p>' + i18n.empty || 'Votre panier est vide.' + '</p>' +
-                '<a href="' + floraShop.restUrl.replace('/wp-json/flora-shop/v1/', '') + '" class="button button-primary">Voir les produits</a>' +
+                '<a href="' + floraShop.restUrl.replace('/wp-json/flora-shop/v1/', '') + '" class="button button-primary">' + i18n.view_products + '</a>' +
                 '</div>'
             );
             return;
         }
 
         var html = '<table class="flora-cart-table"><thead><tr>' +
-            '<th>Article</th><th>Prix</th><th>Quantité</th><th>Total</th><th></th>' +
+            '<th>' + i18n.article + '</th><th>' + i18n.price + '</th><th>' + i18n.quantity + '</th><th>' + i18n.total + '</th><th></th>' +
             '</tr></thead><tbody>';
 
         for (var i = 0; i < cart.items.length; i++) {

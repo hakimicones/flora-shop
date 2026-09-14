@@ -87,6 +87,10 @@ class Flora_Public {
                 'free'          => Flora_Helpers::ui( __( 'Gratuit', 'flora-shop' ), 'مجاني' ),
                 'empty_items'   => Flora_Helpers::ui( __( 'Aucun article dans le panier.', 'flora-shop' ), 'لا توجد منتجات في السلة.' ),
                 'remove'        => Flora_Helpers::ui( __( 'Supprimer', 'flora-shop' ), 'حذف' ),
+                'article'       => Flora_Helpers::ui( __( 'Article', 'flora-shop' ), 'المنتج' ),
+                'price'         => Flora_Helpers::ui( __( 'Prix', 'flora-shop' ), 'السعر' ),
+                'quantity'      => Flora_Helpers::ui( __( 'Quantité', 'flora-shop' ), 'الكمية' ),
+                'applied_promotions' => Flora_Helpers::ui( __( 'Promotions appliquées', 'flora-shop' ), 'العروض المطبّقة' ),
             ),
         ) );
     }

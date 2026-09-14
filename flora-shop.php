@@ -3,7 +3,7 @@
  * Plugin Name: Flora Shop
  * Plugin URI: https://flora-shop.dz
  * Description: Solution e-commerce complète avec gestion de produits, packs, promotions BXGY, transport dynamique (Wilaya/Commune) et deux méthodes de livraison.
- * Version: 1.7.0
+ * Version: 1.7.1
  * Author: A.Hakim NOUAS
  * Author URI: https://icones-software.dz
  * License: GPL v2 or later
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes globales : version, chemins et basename du plugin.
-define( 'FLORA_SHOP_VERSION', '1.7.0' );
+define( 'FLORA_SHOP_VERSION', '1.7.1' );
 define( 'FLORA_SHOP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FLORA_SHOP_URL', plugin_dir_url( __FILE__ ) );
 define( 'FLORA_SHOP_BASENAME', plugin_basename( __FILE__ ) );

@@ -141,6 +141,33 @@
                     </select>
                 </td>
             </tr>
+
+            <?php /* --- Section affichage sur la fiche : texte personnalisé (FR / AR) et CSS inline du message --- */ ?>
+            <tr>
+                <th colspan="2" style="padding-bottom:0;">
+                    <h2 style="margin:0 0 6px;font-size:14px;"><?php esc_html_e( 'Affichage sur la fiche produit / pack', 'flora-shop' ); ?></h2>
+                    <p class="description" style="margin-top:0;"><?php esc_html_e( 'Personnalisez le message affiché dans la liste des promotions de la fiche. Laissez vide pour masquer cette promotion sur la fiche.', 'flora-shop' ); ?></p>
+                </th>
+            </tr>
+            <tr>
+                <th><label for="message_fr"><?php esc_html_e( 'Message (français)', 'flora-shop' ); ?></label></th>
+                <td>
+                    <input type="text" id="message_fr" name="message_fr" class="regular-text" value="<?php echo $promo && isset( $promo->message_fr ) ? esc_attr( $promo->message_fr ) : ''; ?>">
+                </td>
+            </tr>
+            <tr>
+                <th><label for="message_ar"><?php esc_html_e( 'Message (arabe)', 'flora-shop' ); ?></label></th>
+                <td>
+                    <input type="text" id="message_ar" name="message_ar" class="regular-text" value="<?php echo $promo && isset( $promo->message_ar ) ? esc_attr( $promo->message_ar ) : ''; ?>">
+                </td>
+            </tr>
+            <tr>
+                <th><label for="message_css"><?php esc_html_e( 'CSS inline (optionnel)', 'flora-shop' ); ?></label></th>
+                <td>
+                    <input type="text" id="message_css" name="message_css" class="regular-text" placeholder="<?php esc_attr_e( 'background:#fff3cd;color:#8a6d3b;border-radius:6px;', 'flora-shop' ); ?>" value="<?php echo $promo && isset( $promo->message_css ) ? esc_attr( $promo->message_css ) : ''; ?>">
+                    <p class="description"><?php esc_html_e( 'CSS appliqué au message (ex : couleur de fond, bordure, police).', 'flora-shop' ); ?></p>
+                </td>
+            </tr>
         </table>
 
         <p class="submit">

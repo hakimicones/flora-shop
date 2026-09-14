@@ -197,6 +197,9 @@ class Flora_Activator {
             start_date date DEFAULT NULL,
             end_date date DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'active',
+            message_fr varchar(500) NOT NULL DEFAULT '',
+            message_ar varchar(500) NOT NULL DEFAULT '',
+            message_css varchar(1000) NOT NULL DEFAULT '',
             PRIMARY KEY  (id),
             KEY trigger_product_id (trigger_product_id),
             KEY status (status)
@@ -218,6 +221,9 @@ class Flora_Activator {
             start_date date DEFAULT NULL,
             end_date date DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'active',
+            message_fr varchar(500) NOT NULL DEFAULT '',
+            message_ar varchar(500) NOT NULL DEFAULT '',
+            message_css varchar(1000) NOT NULL DEFAULT '',
             PRIMARY KEY  (id),
             KEY scope (scope),
             KEY target_id (target_id),
@@ -349,6 +355,7 @@ class Flora_Activator {
         self::migrate_shipping_rates_columns();
         self::migrate_orders_columns();
         self::migrate_promotions_columns();
+        self::migrate_promo_message_columns();
         self::migrate_category_id_columns();
         self::migrate_category_parent_columns();
     }
@@ -543,6 +550,36 @@ class Flora_Activator {
 
         if ( ! in_array( 'discount_amount', $columns, true ) ) {
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN discount_amount decimal(10,2) NOT NULL DEFAULT 0.00 AFTER discount_percent" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        }
+    }
+
+    // Ajoute les colonnes de personnalisation des messages affichés sur les fiches
+    // (message_fr / message_ar, texte libre, et message_css, CSS inline du <li>)
+    // aux tables promotions et remises catalogue. Idempotent.
+    private static function migrate_promo_message_columns() {
+        global $wpdb;
+
+        foreach ( array( 'promotions', 'catalog_discounts' ) as $table_name ) {
+            $table   = $wpdb->prefix . 'flora_' . $table_name;
+            $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+            if ( ! is_array( $columns ) ) {
+                continue;
+            }
+
+            if ( ! in_array( 'message_fr', $columns, true ) ) {
+                $wpdb->query( "ALTER TABLE {$table} ADD COLUMN message_fr varchar(500) NOT NULL DEFAULT '' AFTER status" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            }
+
+            $columns = $wpdb->get_col( "DESCRIBE {$table}", 0 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+            if ( ! in_array( 'message_ar', $columns, true ) ) {
+                $wpdb->query( "ALTER TABLE {$table} ADD COLUMN message_ar varchar(500) NOT NULL DEFAULT '' AFTER message_fr" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            }
+
+            if ( ! in_array( 'message_css', $columns, true ) ) {
+                $wpdb->query( "ALTER TABLE {$table} ADD COLUMN message_css varchar(1000) NOT NULL DEFAULT '' AFTER message_ar" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            }
         }
     }
 

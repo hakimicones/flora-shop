@@ -7,7 +7,7 @@
     <!-- En-tête : retour à la boutique et lien vers le panier. -->
     <div class="flora-shop-header-actions">
         <a href="<?php echo esc_url( Flora_Helpers::get_page_url( 'shop' ) ); ?>" class="flora-header-cart-link">
-            <span class="dashicons dashicons-arrow-left-alt"></span> <?php esc_html_e( 'Retour à la boutique', 'flora-shop' ); ?>
+            <span class="dashicons dashicons-arrow-left-alt"></span> <?php echo esc_html( Flora_Helpers::ui( __( 'Retour à la boutique', 'flora-shop' ), 'العودة إلى المتجر' ) ); ?>
         </a>
         <a href="<?php echo esc_url( Flora_Helpers::get_page_url( 'cart' ) ); ?>" class="flora-header-cart-link flora-cart-open">
             <span class="dashicons dashicons-cart"></span> <?php echo esc_html( Flora_Helpers::cart_button_label() ); ?>
@@ -42,7 +42,7 @@
 
                 <!-- Accordéon « Contenu du pack » : chaque produit du pack est dépliable (image, quantité et description). -->
                 <?php if ( ! empty( $pack_products ) ) : ?>
-                    <h3 class="flora-pack-detail-title"><?php esc_html_e( 'Contenu du pack', 'flora-shop' ); ?></h3>
+                    <h3 class="flora-pack-detail-title"><?php echo esc_html( Flora_Helpers::ui( __( 'Contenu du pack', 'flora-shop' ), 'محتوى الباك' ) ); ?></h3>
                     <div class="flora-pack-accordion">
                         <?php foreach ( $pack_products as $pp ) :
                             $pp_prod = $db->localize_item( $db->get_product( $pp->product_id ), 'product' );
@@ -82,12 +82,12 @@
 
                 <!-- Promotions actives appliquées à ce pack (configurées en back-office). -->
                 <?php if ( ! empty( $pack_promotions ) ) : ?>
-                    <h3 class="flora-pack-detail-title flora-pack-promo-title"><?php esc_html_e( 'Promotions', 'flora-shop' ); ?></h3>
+                    <h3 class="flora-pack-detail-title flora-pack-promo-title"><?php echo esc_html( Flora_Helpers::ui( __( 'Promotions', 'flora-shop' ), 'العروض' ) ); ?></h3>
                     <ul class="flora-pack-promotions">
                         <?php foreach ( $pack_promotions as $promo ) : ?>
-                            <li class="<?php echo $promo->is_free ? 'flora-promo-free' : ''; ?>">
+                            <li class="<?php echo $promo->is_free ? 'flora-promo-free' : ''; ?>"<?php echo $promo->message_css ? ' style="' . esc_attr( $promo->message_css ) . '"' : ''; ?>>
                                 <span class="dashicons <?php echo $promo->is_free ? 'dashicons-gift' : 'dashicons-megaphone'; ?>"></span>
-                                <span><?php echo esc_html( $promo->title ); ?></span>
+                                <span><?php echo esc_html( $promo->message ); ?></span>
                             </li>
                         <?php endforeach; ?>
                     </ul>
@@ -95,7 +95,7 @@
 
                 <!-- Récapitulatif des prix : contrôle de quantité, ajout du pack au panier puis tableau des prix (recalculé en JS). -->
                 <div class="flora-pack-recap" id="flora-recap">
-                    <h3 class="flora-pack-detail-title"><?php esc_html_e( 'Récapitulatif des prix', 'flora-shop' ); ?></h3>
+                    <h3 class="flora-pack-detail-title"><?php echo esc_html( Flora_Helpers::ui( __( 'Récapitulatif des prix', 'flora-shop' ), 'ملخص الأسعار' ) ); ?></h3>
 
                     <div class="flora-product-actions">
                         <div class="flora-qty-control">
@@ -113,7 +113,7 @@
 
                     <table class="flora-recap-table">
                         <tr>
-                            <td><?php esc_html_e( 'Prix unitaire', 'flora-shop' ); ?></td>
+                            <td><?php echo esc_html( Flora_Helpers::ui( __( 'Prix unitaire', 'flora-shop' ), 'سعر الوحدة' ) ); ?></td>
                             <td data-cell="unit" class="flora-recap-unit"><?php echo esc_html( Flora_Helpers::format_price( $pack->pack_price ) ); ?></td>
                         </tr>
                         <tr>
@@ -136,7 +136,7 @@
             'promotions' => $promo_config,
         ), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE ); ?></script>
     <?php else : ?>
-        <p class="flora-product-not-found"><?php esc_html_e( 'Pack introuvable.', 'flora-shop' ); ?></p>
+        <p class="flora-product-not-found"><?php echo esc_html( Flora_Helpers::ui( __( 'Pack introuvable.', 'flora-shop' ), 'الباك غير موجود.' ) ); ?></p>
     <?php endif; ?>
 
     <div id="flora-cart-notification" class="flora-notification" style="display:none;"></div>

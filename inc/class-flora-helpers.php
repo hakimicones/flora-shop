@@ -122,9 +122,25 @@ class Flora_Helpers {
     }
 
     // Retourne l'URL permanente d'une page Flora ('' si aucune page n'est résolue).
+    // Si Polylang est actif, résout la traduction de la page dans la langue active :
+    // la navigation (boutique, panier, fiche, checkout...) suit ainsi la langue courante.
     public static function get_page_url( $key ) {
         $id = self::get_page_id( $key );
-        return $id ? get_permalink( $id ) : '';
+        if ( ! $id ) {
+            return '';
+        }
+
+        if ( self::is_polylang_active() && function_exists( 'pll_get_post' ) ) {
+            $translated = pll_get_post( $id, self::get_active_lang() );
+            if ( ! $translated || 'publish' !== get_post_status( $translated ) ) {
+                $translated = pll_get_post( $id, self::default_language() );
+            }
+            if ( $translated && 'publish' === get_post_status( $translated ) ) {
+                $id = (int) $translated;
+            }
+        }
+
+        return get_permalink( $id );
     }
 
     // Récupère toutes les pages publiées, toutes langues confondues. Le critère

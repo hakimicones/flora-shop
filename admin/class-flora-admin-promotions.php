@@ -76,6 +76,10 @@ class Flora_Admin_Promotions {
                 'start_date'         => sanitize_text_field( isset( $_POST['start_date'] ) ? $_POST['start_date'] : '' ),
                 'end_date'           => sanitize_text_field( isset( $_POST['end_date'] ) ? $_POST['end_date'] : '' ),
                 'status'             => sanitize_text_field( isset( $_POST['status'] ) ? $_POST['status'] : 'active' ),
+                // Personnalisation du message sur la fiche produit / pack (FR / AR) et CSS inline.
+                'message_fr'         => isset( $_POST['message_fr'] ) ? sanitize_text_field( wp_unslash( $_POST['message_fr'] ) ) : '',
+                'message_ar'         => isset( $_POST['message_ar'] ) ? sanitize_text_field( wp_unslash( $_POST['message_ar'] ) ) : '',
+                'message_css'        => isset( $_POST['message_css'] ) ? wp_strip_all_tags( wp_unslash( $_POST['message_css'] ) ) : '',
             );
 
             $id = isset( $_POST['promo_id'] ) ? absint( $_POST['promo_id'] ) : 0;

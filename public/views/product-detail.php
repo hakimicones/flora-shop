@@ -8,7 +8,7 @@
     <!-- En-tête : retour à la boutique et lien vers le panier. -->
     <div class="flora-shop-header-actions">
         <a href="<?php echo esc_url( Flora_Helpers::get_page_url( 'shop' ) ); ?>" class="flora-header-cart-link">
-            <span class="dashicons dashicons-arrow-left-alt"></span> <?php esc_html_e( 'Retour à la boutique', 'flora-shop' ); ?>
+            <span class="dashicons dashicons-arrow-left-alt"></span> <?php echo esc_html( Flora_Helpers::ui( __( 'Retour à la boutique', 'flora-shop' ), 'العودة إلى المتجر' ) ); ?>
         </a>
         <a href="<?php echo esc_url( Flora_Helpers::get_page_url( 'cart' ) ); ?>" class="flora-header-cart-link flora-cart-open">
             <span class="dashicons dashicons-cart"></span> <?php echo esc_html( Flora_Helpers::cart_button_label() ); ?>
@@ -28,7 +28,7 @@
                     </div>
                 <?php endif; ?>
                 <?php if ( $product->stock_status === 'outofstock' ) : ?>
-                    <span class="flora-badge-outofstock"><?php esc_html_e( 'Rupture de stock', 'flora-shop' ); ?></span>
+                    <span class="flora-badge-outofstock"><?php echo esc_html( Flora_Helpers::ui( __( 'Rupture de stock', 'flora-shop' ), 'نفدت الكمية' ) ); ?></span>
                 <?php endif; ?>
             </div>
 
@@ -44,9 +44,9 @@
                 <?php endif; ?>
 
                 <?php if ( $product->stock_qty > 0 && $product->stock_status !== 'outofstock' ) : ?>
-                    <p class="flora-stock-info"><?php echo esc_html( sprintf( __( 'En stock : %d', 'flora-shop' ), $product->stock_qty ) ); ?></p>
+                    <p class="flora-stock-info"><?php echo esc_html( sprintf( Flora_Helpers::ui( __( 'En stock : %d', 'flora-shop' ), 'في المخزون : %d' ), $product->stock_qty ) ); ?></p>
                 <?php elseif ( $product->stock_status !== 'outofstock' ) : ?>
-                    <p class="flora-stock-info"><?php esc_html_e( 'Disponible', 'flora-shop' ); ?></p>
+                    <p class="flora-stock-info"><?php echo esc_html( Flora_Helpers::ui( __( 'Disponible', 'flora-shop' ), 'متوفر' ) ); ?></p>
                 <?php endif; ?>
 
                 <?php if ( $product->stock_status !== 'outofstock' ) : ?>
@@ -67,12 +67,12 @@
 
                 <!-- Promotions actives appliquées à ce produit (configurées en back-office). -->
                 <?php if ( ! empty( $product_promotions ) ) : ?>
-                    <h3 class="flora-pack-detail-title flora-pack-promo-title"><?php esc_html_e( 'Promotions', 'flora-shop' ); ?></h3>
+                    <h3 class="flora-pack-detail-title flora-pack-promo-title"><?php echo esc_html( Flora_Helpers::ui( __( 'Promotions', 'flora-shop' ), 'العروض' ) ); ?></h3>
                     <ul class="flora-pack-promotions">
                         <?php foreach ( $product_promotions as $promo ) : ?>
-                            <li class="<?php echo $promo->is_free ? 'flora-promo-free' : ''; ?>">
+                            <li class="<?php echo $promo->is_free ? 'flora-promo-free' : ''; ?>"<?php echo $promo->message_css ? ' style="' . esc_attr( $promo->message_css ) . '"' : ''; ?>>
                                 <span class="dashicons <?php echo $promo->is_free ? 'dashicons-gift' : 'dashicons-megaphone'; ?>"></span>
-                                <span><?php echo esc_html( $promo->title ); ?></span>
+                                <span><?php echo esc_html( $promo->message ); ?></span>
                             </li>
                         <?php endforeach; ?>
                     </ul>
@@ -81,11 +81,11 @@
                 <!-- Récapitulatif des prix : unitaire, sous-total, promotions et total (recalculé en JS). -->
                 <?php if ( $product->stock_status !== 'outofstock' ) : ?>
                     <div class="flora-pack-recap" id="flora-recap">
-                        <h3 class="flora-pack-detail-title"><?php esc_html_e( 'Récapitulatif des prix', 'flora-shop' ); ?></h3>
+                        <h3 class="flora-pack-detail-title"><?php echo esc_html( Flora_Helpers::ui( __( 'Récapitulatif des prix', 'flora-shop' ), 'ملخص الأسعار' ) ); ?></h3>
 
                         <table class="flora-recap-table">
                             <tr>
-                                <td><?php esc_html_e( 'Prix unitaire', 'flora-shop' ); ?></td>
+                                <td><?php echo esc_html( Flora_Helpers::ui( __( 'Prix unitaire', 'flora-shop' ), 'سعر الوحدة' ) ); ?></td>
                                 <td data-cell="unit" class="flora-recap-unit"><?php echo esc_html( Flora_Helpers::format_price( $product->price ) ); ?></td>
                             </tr>
                             <tr>
@@ -109,7 +109,7 @@
             'promotions' => $promo_config,
         ), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE ); ?></script>
     <?php else : ?>
-        <p class="flora-product-not-found"><?php esc_html_e( 'Produit introuvable.', 'flora-shop' ); ?></p>
+        <p class="flora-product-not-found"><?php echo esc_html( Flora_Helpers::ui( __( 'Produit introuvable.', 'flora-shop' ), 'المنتج غير موجود.' ) ); ?></p>
     <?php endif; ?>
 
     <div id="flora-cart-notification" class="flora-notification" style="display:none;"></div>

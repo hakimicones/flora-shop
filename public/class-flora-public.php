@@ -158,6 +158,11 @@ class Flora_Public {
                 // Ajout des remises catalogue (catégorie / type / tag) applicables à ce pack.
                 $promo_config  = array_merge( $promo_config, self::build_catalog_promo_config( $db->get_catalog_discounts( true ), 'pack', $pack ) );
                 foreach ( $promo_config as $entry ) {
+                    // La liste « Promotions » de la fiche n'affiche que les lignes ayant un message
+                    // renseigné dans la langue active ; le récapitulatif de prix (promo_config) les garde toutes.
+                    if ( '' === trim( (string) $entry['message'] ) ) {
+                        continue;
+                    }
                     $pack_promotions[] = (object) $entry;
                 }
             }
@@ -180,6 +185,10 @@ class Flora_Public {
             // Ajout des remises catalogue (catégorie / type / tag) applicables à ce produit.
             $promo_config = array_merge( $promo_config, self::build_catalog_promo_config( $db->get_catalog_discounts( true ), 'product', $product ) );
             foreach ( $promo_config as $entry ) {
+                // Même règle que pour les packs : seules les lignes avec message dans la langue active sont listées.
+                if ( '' === trim( (string) $entry['message'] ) ) {
+                    continue;
+                }
                 $product_promotions[] = (object) $entry;
             }
         }
@@ -211,6 +220,8 @@ class Flora_Public {
                 'limit'       => $limit,
                 'reward_type' => $reward_type,
                 'is_free'     => false,
+                'message'     => self::promo_display_message( $promo ),
+                'message_css' => self::promo_display_css( $promo ),
             );
 
             if ( 'percent' === $reward_type ) {
@@ -298,6 +309,8 @@ class Flora_Public {
                 'reward_type' => $reward_type,
                 'is_free'     => false,
                 'scope'       => $scope,
+                'message'     => self::promo_display_message( $promo ),
+                'message_css' => self::promo_display_css( $promo ),
             );
 
             if ( 'percent' === $reward_type ) {
@@ -339,6 +352,21 @@ class Flora_Public {
         }
 
         return $config;
+    }
+
+    // Retourne le message personnalisé d'une promotion pour la fiche produit / pack
+    // (texte libre FR ou AR selon la langue active, '' si aucun n'est renseigné).
+    // Une valeur vide signale au shortcode que la ligne promo ne doit pas s'afficher.
+    private static function promo_display_message( $promo ) {
+        if ( 'ar' === Flora_Helpers::get_active_lang() && ! empty( $promo->message_ar ) ) {
+            return trim( (string) $promo->message_ar );
+        }
+        return trim( (string) ( isset( $promo->message_fr ) ? $promo->message_fr : '' ) );
+    }
+
+    // Retourne le CSS inline (attribut style) d'une promotion pour sa ligne de fiche, si défini.
+    private static function promo_display_css( $promo ) {
+        return isset( $promo->message_css ) ? trim( (string) $promo->message_css ) : '';
     }
 
     public function shortcode_cart() {
